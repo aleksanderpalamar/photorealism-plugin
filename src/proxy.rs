@@ -10,7 +10,9 @@ use windows::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 use windows::core::{BOOL, GUID, HRESULT, PCSTR, PCWSTR};
 
-use crate::{hooks, logging, settings::Settings};
+use crate::config::{CONFIG_FILE_NAME, ConfigSource, FileConfigSource};
+use crate::settings::Settings;
+use crate::{hooks, logging};
 
 type CreateFactory = unsafe extern "system" fn(*const GUID, *mut *mut c_void) -> HRESULT;
 type CreateFactory2 = unsafe extern "system" fn(u32, *const GUID, *mut *mut c_void) -> HRESULT;
@@ -20,7 +22,10 @@ static HDR_ENVIRONMENT: OnceLock<()> = OnceLock::new();
 
 fn prepare_dxgi() {
     HDR_ENVIRONMENT.get_or_init(|| {
-        let settings = Settings::load(&logging::plugin_path("photorealism-plugin.cfg"));
+        let source = FileConfigSource::new(logging::plugin_path(CONFIG_FILE_NAME));
+        let settings = source
+            .read()
+            .map_or_else(Settings::default, |contents| Settings::parse(&contents));
         if !settings.force_hdr {
             logging::write("Exposicao HDR do DXVK desativada pela configuracao.");
             return;

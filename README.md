@@ -17,7 +17,8 @@ O projeto usa a mesma estratégia básica da implementação de referência: `dx
 - saída scRGB linear com valores acima de 1.0 preservados;
 - compatibilidade de fallback com SDR;
 - reconstrução automática dos recursos após mudança de resolução;
-- restauração do estado D3D11 usado pelo jogo antes do passe.
+- restauração do estado D3D11 usado pelo jogo antes do passe;
+- recarga da configuração em tempo de execução, sem reiniciar o jogo.
 
 O shader é compilado em tempo de execução por `d3dcompiler_47.dll`, normalmente disponível no Windows e no Proton.
 
@@ -67,7 +68,9 @@ Se iniciar o jogo dentro de uma instância própria do Gamescope, use:
 PROTON_ENABLE_HDR=1 WINEDLLOVERRIDES="dxgi=n,b" gamescope --hdr-enabled -f -- %command% -rdevice dx11
 ```
 
-As opções são lidas de `photorealism-plugin/photorealism-plugin.cfg` na inicialização. Reinicie o jogo depois de alterá-las. O log é gravado em `photorealism-plugin/photorealism-plugin.log`.
+As opções são lidas de `photorealism-plugin/photorealism-plugin.cfg`. Com o jogo aberto, o arquivo é relido a cada segundo e os novos valores entram em vigor no quadro seguinte, sem reinício. Cada recarga é registrada em `photorealism-plugin/photorealism-plugin.log` com os valores aplicados. A única exceção é `force_hdr`, que precisa existir antes de o DXGI ser carregado e só vale a partir da próxima abertura do jogo; o log avisa quando essa opção é alterada em tempo de execução.
+
+Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos valores válidos continuam em uso.
 
 `force_hdr=true` define `DXVK_HDR=1` antes de o DXGI real ser carregado, permitindo que o ETS2 detecte os modos HDR no Proton. Essa opção não substitui `PROTON_ENABLE_HDR=1`, que precisa existir antes de o Proton iniciar. Para HDR, ajuste `hdr_paper_white_nits` para o nível de branco confortável da tela e `hdr_peak_nits` para o pico calibrado do monitor. O valor inicial usa 203 nits para paper white e 1000 nits para o pico. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
 
