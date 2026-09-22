@@ -18,7 +18,8 @@ O projeto usa a mesma estratégia básica da implementação de referência: `dx
 - compatibilidade de fallback com SDR;
 - reconstrução automática dos recursos após mudança de resolução;
 - restauração do estado D3D11 usado pelo jogo antes do passe;
-- recarga da configuração em tempo de execução, sem reiniciar o jogo.
+- recarga da configuração em tempo de execução, sem reiniciar o jogo;
+- detecção do pico de brilho do monitor pelo DXGI.
 
 O shader é compilado em tempo de execução por `d3dcompiler_47.dll`, normalmente disponível no Windows e no Proton.
 
@@ -72,7 +73,9 @@ As opções são lidas de `photorealism-plugin/photorealism-plugin.cfg`. Com o j
 
 Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos valores válidos continuam em uso.
 
-`force_hdr=true` define `DXVK_HDR=1` antes de o DXGI real ser carregado, permitindo que o ETS2 detecte os modos HDR no Proton. Essa opção não substitui `PROTON_ENABLE_HDR=1`, que precisa existir antes de o Proton iniciar. Para HDR, ajuste `hdr_paper_white_nits` para o nível de branco confortável da tela e `hdr_peak_nits` para o pico calibrado do monitor. O valor inicial usa 203 nits para paper white e 1000 nits para o pico. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
+`force_hdr=true` define `DXVK_HDR=1` antes de o DXGI real ser carregado, permitindo que o ETS2 detecte os modos HDR no Proton. Essa opção não substitui `PROTON_ENABLE_HDR=1`, que precisa existir antes de o Proton iniciar. Para HDR, ajuste `hdr_paper_white_nits` para o nível de branco confortável da tela; o valor inicial é 203 nits.
+
+`hdr_peak_nits` aceita `auto`, que é o padrão, ou um número entre 400 e 10000. Em `auto` o plugin consulta `IDXGIOutput6::GetDesc1` e usa o `MaxLuminance` informado pelo monitor, limitado à mesma faixa. Como nem todo caminho DXVK/Wayland preenche esse campo, o log registra o que foi lido: se o valor vier ausente ou abaixo de 250 nits, ele é descartado e o plugin volta para 1000 nits. Compare o número do log com a especificação do seu monitor e, se não bater, fixe o valor correto no lugar de `auto`. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
 
 O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo dentro de uma instância própria do Gamescope, inclua `--hdr-enabled`. O suporte nativo do jogo foi introduzido na versão 1.57.
 
