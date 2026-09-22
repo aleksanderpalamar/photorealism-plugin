@@ -39,7 +39,18 @@ cargo install cargo-zigbuild --locked
 ./tools/build.sh
 ```
 
-O pacote será criado em uma pasta e um arquivo ZIP versionados, como `dist/photorealism-plugin-0.2.1-ets2-hdr/` e `dist/photorealism-plugin-0.2.1-ets2-hdr.zip`. Versões anteriores não são removidas automaticamente.
+Cada execução publica uma versão nova. O script parte da maior versão que encontra entre o `Cargo.toml`, os pacotes em `dist/` e as tags `v*` do git, e incrementa a partir dela:
+
+```bash
+./tools/build.sh            # 0.2.1 -> 0.2.2
+./tools/build.sh minor      # 0.2.1 -> 0.3.0
+./tools/build.sh major      # 0.2.1 -> 1.0.0
+./tools/build.sh --dry-run  # mostra a versão calculada sem alterar nada
+```
+
+A versão escolhida é gravada no `Cargo.toml` antes dos testes, do clippy e da compilação. Se qualquer uma dessas etapas falhar, `Cargo.toml` e `Cargo.lock` voltam ao estado anterior e nada é publicado em `dist/`. O commit da nova versão fica por sua conta; o script sugere a linha ao terminar.
+
+O pacote é criado em uma pasta e um arquivo ZIP versionados, como `dist/photorealism-plugin-0.2.2-ets2-hdr/` e `dist/photorealism-plugin-0.2.2-ets2-hdr.zip`. Versões anteriores não são removidas nem sobrescritas.
 
 ## Instalação
 
