@@ -42,9 +42,9 @@ Todo código produzido deve permanecer em conformidade com estas regras.
   Uma abstração deve existir porque resolve um problema real de design,
   e não apenas para antecipar uma possível necessidade futura.
 
-## C++
+## Rust
 
-- Priorizar código idiomático em C++.
+- Priorizar código idiomático em Rust.
 
 - Utilizar o sistema de tipos para representar regras e estados sempre que possível.
 
@@ -55,7 +55,6 @@ Evitar exceções ou asserts para situações esperadas de execução.
 Preferir tratamento explícito do erro.
 
 - Utilizar std::optional<T> quando um valor pode não existir.
-Equivalente aproximado ao Option<T> do Rust.
 
 - Não silenciar warnings sem uma justificativa clara.
 
