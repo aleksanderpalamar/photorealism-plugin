@@ -1,0 +1,19 @@
+Photorealism Plugin 0.2.1 - instalacao HDR no ETS2
+
+1. Copie dxgi.dll e a pasta photorealism-plugin para:
+   Euro Truck Simulator 2/bin/win_x64/
+
+2. No Steam, abra Propriedades do ETS2 e use esta opcao de inicializacao
+   para GNOME Wayland com GE-Proton:
+
+PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_HDR=1 WINEDLLOVERRIDES="dxgi=n,b" %command% -rdevice dx11
+
+3. Confirme que o HDR esta habilitado nas configuracoes do monitor e do GNOME.
+
+4. Depois de abrir o jogo, confira estes dois registros:
+   game.log.txt deve listar um modo HDR na secao Detected color modes.
+   photorealism-plugin.log deve informar modo=HDR10-PQ ou modo=scRGB.
+
+Se usar uma instancia propria do Gamescope, use no lugar da linha acima:
+
+PROTON_ENABLE_HDR=1 WINEDLLOVERRIDES="dxgi=n,b" gamescope --hdr-enabled -f -- %command% -rdevice dx11
