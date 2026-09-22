@@ -121,7 +121,7 @@ float3 apply_white_balance(float3 color)
 float3 apply_highlight_rolloff(float3 color, float limit)
 {
     float amount = saturate(HighlightRolloff);
-    float knee = lerp(limit, max(1.0, limit * 0.5), amount);
+    float knee = limit * lerp(1.0, 0.5, amount);
     float headroom = max(limit - knee, 0.0001);
     float3 excess = max(color - knee, 0.0);
     float3 compressed = knee + headroom * (1.0 - exp(-excess / headroom));
