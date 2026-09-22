@@ -1,6 +1,3 @@
-#[cfg(windows)]
-use std::path::Path;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
     pub enabled: bool,
@@ -33,14 +30,6 @@ impl Default for Settings {
 }
 
 impl Settings {
-    #[cfg(windows)]
-    pub fn load(path: &Path) -> Self {
-        let Ok(contents) = std::fs::read_to_string(path) else {
-            return Self::default();
-        };
-        Self::parse(&contents)
-    }
-
     pub fn parse(contents: &str) -> Self {
         contents.lines().fold(Self::default(), Self::apply_line)
     }
