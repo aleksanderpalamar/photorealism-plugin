@@ -19,7 +19,8 @@ O projeto usa a mesma estratégia básica da implementação de referência: `dx
 - reconstrução automática dos recursos após mudança de resolução;
 - restauração do estado D3D11 usado pelo jogo antes do passe;
 - recarga da configuração em tempo de execução, sem reiniciar o jogo;
-- detecção do pico de brilho do monitor pelo DXGI.
+- detecção do pico de brilho do monitor pelo DXGI;
+- luminância calculada nas primárias do espaço de saída, Rec.709 ou Rec.2020.
 
 O shader é compilado em tempo de execução por `d3dcompiler_47.dll`, normalmente disponível no Windows e no Proton.
 
@@ -76,6 +77,8 @@ Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos val
 `force_hdr=true` define `DXVK_HDR=1` antes de o DXGI real ser carregado, permitindo que o ETS2 detecte os modos HDR no Proton. Essa opção não substitui `PROTON_ENABLE_HDR=1`, que precisa existir antes de o Proton iniciar. Para HDR, ajuste `hdr_paper_white_nits` para o nível de branco confortável da tela; o valor inicial é 203 nits.
 
 `hdr_peak_nits` aceita `auto`, que é o padrão, ou um número entre 400 e 10000. Em `auto` o plugin consulta `IDXGIOutput6::GetDesc1` e usa o `MaxLuminance` informado pelo monitor, limitado à mesma faixa. Como nem todo caminho DXVK/Wayland preenche esse campo, o log registra o que foi lido: se o valor vier ausente ou abaixo de 250 nits, ele é descartado e o plugin volta para 1000 nits. Compare o número do log com a especificação do seu monitor e, se não bater, fixe o valor correto no lugar de `auto`. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
+
+Saturação e balanço de branco dependem do peso de luminância de cada canal. Em HDR10-PQ o conteúdo está em Rec.2020 e os pesos usados são os dessa norma; em SDR e scRGB valem os de Rec.709. A gradação continua acontecendo nas primárias nativas de cada modo, sem conversão de gamut, para não descartar as cores fora do Rec.709 que o HDR10 carrega. Por isso `temperature` e `tint` têm força um pouco diferente entre os modos e merecem calibração separada.
 
 O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo dentro de uma instância própria do Gamescope, inclua `--hdr-enabled`. O suporte nativo do jogo foi introduzido na versão 1.57.
 

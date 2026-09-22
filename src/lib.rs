@@ -1,4 +1,6 @@
 #[cfg(any(windows, test))]
+mod color;
+#[cfg(any(windows, test))]
 mod config;
 #[cfg(any(windows, test))]
 mod settings;

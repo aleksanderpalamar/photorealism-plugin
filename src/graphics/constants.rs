@@ -16,6 +16,8 @@ pub struct ShaderSettings {
     hdr_paper_white_nits: f32,
     hdr_peak_nits: f32,
     padding: f32,
+    luminance_weights: [f32; 3],
+    weights_padding: f32,
 }
 
 impl ShaderSettings {
@@ -34,6 +36,8 @@ impl ShaderSettings {
             hdr_paper_white_nits: value.hdr_paper_white_nits,
             hdr_peak_nits: value.hdr_peak_nits.resolve(reported_peak),
             padding: 0.0,
+            luminance_weights: frame.output_mode.luminance_weights(),
+            weights_padding: 0.0,
         }
     }
 }
