@@ -7,6 +7,7 @@ use windows::Win32::Graphics::Dxgi::Common::{
 
 use super::constants::ShaderSettings;
 use super::shaders;
+use crate::color::OutputMode;
 
 pub struct FrameResources {
     pub width: u32,
@@ -16,31 +17,6 @@ pub struct FrameResources {
     pub output_view: ID3D11RenderTargetView,
     pub manual_srgb: bool,
     pub output_mode: OutputMode,
-}
-
-#[derive(Clone, Copy)]
-pub enum OutputMode {
-    Sdr,
-    Hdr10,
-    ScRgb,
-}
-
-impl OutputMode {
-    pub fn shader_value(self) -> f32 {
-        match self {
-            Self::Sdr => 0.0,
-            Self::Hdr10 => 1.0,
-            Self::ScRgb => 2.0,
-        }
-    }
-
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::Sdr => "SDR",
-            Self::Hdr10 => "HDR10-PQ",
-            Self::ScRgb => "scRGB",
-        }
-    }
 }
 
 pub fn texture_description(texture: &ID3D11Texture2D) -> D3D11_TEXTURE2D_DESC {

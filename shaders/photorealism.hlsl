@@ -15,6 +15,8 @@ cbuffer SettingsBuffer : register(b0)
     float HdrPaperWhiteNits;
     float HdrPeakNits;
     float Padding;
+    float3 LuminanceWeights;
+    float WeightsPadding;
 };
 
 struct VertexOutput
@@ -33,7 +35,7 @@ VertexOutput VSMain(uint vertex_id : SV_VertexID)
 
 float luminance(float3 color)
 {
-    return dot(color, float3(0.2126, 0.7152, 0.0722));
+    return dot(color, LuminanceWeights);
 }
 
 float3 srgb_to_linear(float3 color)
