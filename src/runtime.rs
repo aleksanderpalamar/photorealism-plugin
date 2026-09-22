@@ -93,7 +93,7 @@ impl Runtime {
 fn describe(settings: Settings) -> String {
     format!(
         "enabled={} exposure={:.2} contrast={:.2} saturation={:.2} temperature={:.0} \
-         tint={:.2} highlight_rolloff={:.2} paper_white={:.0} peak={:.0}",
+         tint={:.2} highlight_rolloff={:.2} paper_white={:.0} peak={}",
         settings.enabled,
         settings.exposure,
         settings.contrast,

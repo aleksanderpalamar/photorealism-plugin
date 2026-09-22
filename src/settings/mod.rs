@@ -1,3 +1,7 @@
+mod peak_nits;
+
+pub use peak_nits::PeakNits;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
     pub enabled: bool,
@@ -9,7 +13,7 @@ pub struct Settings {
     pub tint: f32,
     pub highlight_rolloff: f32,
     pub hdr_paper_white_nits: f32,
-    pub hdr_peak_nits: f32,
+    pub hdr_peak_nits: PeakNits,
 }
 
 impl Default for Settings {
@@ -24,7 +28,7 @@ impl Default for Settings {
             tint: 0.0,
             highlight_rolloff: 0.18,
             hdr_paper_white_nits: 203.0,
-            hdr_peak_nits: 1000.0,
+            hdr_peak_nits: PeakNits::Auto,
         }
     }
 }
@@ -57,9 +61,7 @@ impl Settings {
             "hdr_paper_white_nits" => {
                 self.hdr_paper_white_nits = parse_f32(value, 80.0, 500.0, self.hdr_paper_white_nits)
             }
-            "hdr_peak_nits" => {
-                self.hdr_peak_nits = parse_f32(value, 400.0, 10_000.0, self.hdr_peak_nits)
-            }
+            "hdr_peak_nits" => self.hdr_peak_nits = PeakNits::parse(value, self.hdr_peak_nits),
             _ => {}
         }
     }
@@ -88,7 +90,7 @@ fn parse_f32(value: &str, minimum: f32, maximum: f32, fallback: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::Settings;
+    use super::{PeakNits, Settings};
 
     #[test]
     fn parses_supported_values() {
@@ -107,7 +109,7 @@ mod tests {
         assert_eq!(settings.tint, -0.2);
         assert_eq!(settings.highlight_rolloff, 0.4);
         assert_eq!(settings.hdr_paper_white_nits, 250.0);
-        assert_eq!(settings.hdr_peak_nits, 1200.0);
+        assert_eq!(settings.hdr_peak_nits, PeakNits::Fixed(1200.0));
     }
 
     #[test]
@@ -121,7 +123,14 @@ mod tests {
         assert_eq!(settings.contrast, 0.25);
         assert_eq!(settings.temperature, 2000.0);
         assert_eq!(settings.hdr_paper_white_nits, 80.0);
-        assert_eq!(settings.hdr_peak_nits, 10_000.0);
+        assert_eq!(settings.hdr_peak_nits, PeakNits::Fixed(10_000.0));
+    }
+
+    #[test]
+    fn reads_the_automatic_peak_keyword() {
+        let settings = Settings::parse("hdr_peak_nits=1200\nhdr_peak_nits=auto");
+
+        assert_eq!(settings.hdr_peak_nits, PeakNits::Auto);
     }
 
     #[test]

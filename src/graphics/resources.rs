@@ -5,7 +5,8 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
 
-use super::{ShaderSettings, shaders};
+use super::constants::ShaderSettings;
+use super::shaders;
 
 pub struct FrameResources {
     pub width: u32,
