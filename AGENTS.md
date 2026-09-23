@@ -46,7 +46,7 @@ Todo código produzido deve permanecer em conformidade com estas regras.
 
 - Utilizar sempre a skill graphics-pipeline quando for mexer na pipeline grafica do plugin, como implementação de features novas e refatoração.
 - Utilizar sempre a skill graphics-debugging quando surgir correção de crashes, artefatos visuais, cores erradas, ausência de efeito, falhas de inicialização e regressões de desempenho no photorealism-plugin.
-- Quando a(s) tarefa(s) envolverem tanto implementação quanto investigação de problemas, use as duas skills `graphics-pipeline` e `graphics-debugging` de forma complementar.
+- Quando a tarefa envolver tanto implementação quanto investigação de problemas, use as duas skills `graphics-pipeline` e `graphics-debugging` de forma complementar.
 
 ## Rust
 
