@@ -1,7 +1,8 @@
 use std::fmt;
 
-const MINIMUM_NITS: f32 = 400.0;
-const MAXIMUM_NITS: f32 = 10_000.0;
+use super::range::{self, Range};
+
+const RANGE: Range = range::PEAK_NITS;
 const DEFAULT_NITS: f32 = 1000.0;
 const MINIMUM_REPORTED_NITS: f32 = 250.0;
 const AUTO_KEYWORD: &str = "auto";
@@ -20,7 +21,7 @@ impl PeakNits {
         let Ok(parsed) = value.parse::<f32>() else {
             return fallback;
         };
-        Self::Fixed(parsed.clamp(MINIMUM_NITS, MAXIMUM_NITS))
+        Self::Fixed(RANGE.clamp(parsed))
     }
 
     pub fn resolve(self, reported: Option<f32>) -> f32 {
@@ -28,7 +29,7 @@ impl PeakNits {
             Self::Fixed(nits) => nits,
             Self::Auto => reported
                 .filter(|nits| *nits >= MINIMUM_REPORTED_NITS)
-                .map_or(DEFAULT_NITS, |nits| nits.clamp(MINIMUM_NITS, MAXIMUM_NITS)),
+                .map_or(DEFAULT_NITS, |nits| RANGE.clamp(nits)),
         }
     }
 }
@@ -48,14 +49,26 @@ mod tests {
 
     #[test]
     fn parses_the_automatic_keyword() {
-        assert_eq!(PeakNits::parse("auto", PeakNits::Fixed(1000.0)), PeakNits::Auto);
+        assert_eq!(
+            PeakNits::parse("auto", PeakNits::Fixed(1000.0)),
+            PeakNits::Auto
+        );
     }
 
     #[test]
     fn parses_and_clamps_explicit_values() {
-        assert_eq!(PeakNits::parse("1200", PeakNits::Auto), PeakNits::Fixed(1200.0));
-        assert_eq!(PeakNits::parse("20000", PeakNits::Auto), PeakNits::Fixed(10_000.0));
-        assert_eq!(PeakNits::parse("100", PeakNits::Auto), PeakNits::Fixed(400.0));
+        assert_eq!(
+            PeakNits::parse("1200", PeakNits::Auto),
+            PeakNits::Fixed(1200.0)
+        );
+        assert_eq!(
+            PeakNits::parse("20000", PeakNits::Auto),
+            PeakNits::Fixed(10_000.0)
+        );
+        assert_eq!(
+            PeakNits::parse("100", PeakNits::Auto),
+            PeakNits::Fixed(400.0)
+        );
     }
 
     #[test]
