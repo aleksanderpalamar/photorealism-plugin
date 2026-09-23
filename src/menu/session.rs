@@ -1,7 +1,8 @@
-use super::draft::Draft;
-use super::interaction::{self, Interaction};
+use super::draft::{Changes, Draft};
+use super::interaction::Interaction;
 use super::panel;
 use super::pointer::{Button, Pointer};
+use super::resolve::{self, Request, Update};
 use super::vertex::{Vertex, Viewport};
 use super::visibility::Visibility;
 use crate::settings::Settings;
@@ -34,28 +35,43 @@ impl Session {
         self.pointer.set_button(Button::from_pressed(pressed));
     }
 
-    pub fn settings(&mut self, stored: Settings, viewport: Viewport) -> Settings {
+    pub fn update(&mut self, stored: Settings, viewport: Viewport) -> Update {
         let current = self.draft.effective(stored);
         if !self.is_visible() {
-            return current;
+            return Update {
+                settings: current,
+                request: Request::None,
+            };
         }
         let layout = panel::layout_for(viewport);
         let action = self.interaction.update(&layout, self.pointer, &current);
-        if action.is_idle() {
-            return current;
-        }
-        interaction::apply(action, self.draft.edit(stored));
-        self.draft.effective(stored)
+        resolve::resolve(action, &mut self.draft, stored, current)
+    }
+
+    pub fn saved(&mut self) {
+        self.draft.discard();
+    }
+
+    pub fn changes(&self) -> Changes {
+        self.draft.changes()
     }
 
     pub fn vertices(&self, settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
-        panel::vertices(settings, self.pointer.position(), viewport, title)
+        panel::vertices(
+            settings,
+            self.pointer.position(),
+            self.changes(),
+            viewport,
+            title,
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Session;
+    use crate::menu::draft::Changes;
+    use crate::menu::resolve::Request;
     use crate::menu::vertex::Viewport;
     use crate::settings::Settings;
 
@@ -87,7 +103,7 @@ mod tests {
         let mut session = Session::default();
 
         assert!(!session.is_visible());
-        assert_eq!(session.settings(stored(), viewport()), stored());
+        assert_eq!(session.update(stored(), viewport()).settings, stored());
     }
 
     #[test]
@@ -97,7 +113,7 @@ mod tests {
         session.toggle(viewport());
 
         assert!(session.is_visible());
-        assert_eq!(session.settings(stored(), viewport()), stored());
+        assert_eq!(session.update(stored(), viewport()).settings, stored());
     }
 
     #[test]
@@ -110,7 +126,7 @@ mod tests {
             ..Settings::default()
         };
 
-        assert_eq!(session.settings(reloaded, viewport()).contrast, 1.5);
+        assert_eq!(session.update(reloaded, viewport()).settings.contrast, 1.5);
     }
 
     #[test]
@@ -119,7 +135,7 @@ mod tests {
         session.toggle(viewport());
         press_first_track(&mut session, 1.0);
 
-        let settings = session.settings(stored(), viewport());
+        let settings = session.update(stored(), viewport()).settings;
 
         assert_eq!(settings.exposure, 4.0);
     }
@@ -129,15 +145,15 @@ mod tests {
         let mut session = Session::default();
         session.toggle(viewport());
         press_first_track(&mut session, 1.0);
-        session.settings(stored(), viewport());
+        session.update(stored(), viewport());
         session.set_button(false);
-        session.settings(stored(), viewport());
+        session.update(stored(), viewport());
 
         let reloaded = Settings {
             contrast: 1.5,
             ..Settings::default()
         };
-        let settings = session.settings(reloaded, viewport());
+        let settings = session.update(reloaded, viewport()).settings;
 
         assert_eq!(settings.exposure, 4.0);
         assert_eq!(settings.contrast, 0.99);
@@ -148,21 +164,78 @@ mod tests {
         let mut session = Session::default();
         session.toggle(viewport());
         press_first_track(&mut session, 1.0);
-        session.settings(stored(), viewport());
+        session.update(stored(), viewport());
 
         session.toggle(viewport());
 
-        assert_eq!(session.settings(stored(), viewport()).exposure, 4.0);
+        assert_eq!(session.update(stored(), viewport()).settings.exposure, 4.0);
     }
 
     #[test]
     fn the_panel_only_draws_while_it_is_open() {
         let session = Session::default();
 
-        assert!(
-            !session
-                .vertices(&stored(), viewport(), "menu")
-                .is_empty()
-        );
+        assert!(!session.vertices(&stored(), viewport(), "menu").is_empty());
+    }
+
+    fn press(session: &mut Session, x: f32, y: f32) {
+        session.move_pointer(-f32::MAX, -f32::MAX, viewport());
+        session.move_pointer(x, y, viewport());
+        session.set_button(true);
+    }
+
+    #[test]
+    fn pressing_save_asks_the_runtime_to_write() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        let layout = crate::menu::panel::layout_for(viewport());
+        press(&mut session, layout.save.x + 4.0, layout.save.y + 2.0);
+
+        let update = session.update(stored(), viewport());
+
+        assert_eq!(update.request, Request::Save);
+    }
+
+    #[test]
+    fn pressing_discard_returns_to_the_stored_configuration() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        press_first_track(&mut session, 1.0);
+        session.update(stored(), viewport());
+        session.set_button(false);
+        session.update(stored(), viewport());
+
+        let layout = crate::menu::panel::layout_for(viewport());
+        press(&mut session, layout.discard.x + 4.0, layout.discard.y + 2.0);
+        let update = session.update(stored(), viewport());
+
+        assert_eq!(update.settings, stored());
+        assert_eq!(update.request, Request::None);
+    }
+
+    #[test]
+    fn accepting_a_save_clears_the_pending_changes() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        press_first_track(&mut session, 1.0);
+        session.update(stored(), viewport());
+
+        session.set_button(false);
+        session.saved();
+
+        assert_eq!(session.changes(), Changes::None);
+        assert_eq!(session.update(stored(), viewport()).settings, stored());
+    }
+
+    #[test]
+    fn an_edit_marks_the_changes_as_pending() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        assert_eq!(session.changes(), Changes::None);
+
+        press_first_track(&mut session, 1.0);
+        session.update(stored(), viewport());
+
+        assert_eq!(session.changes(), Changes::Pending);
     }
 }

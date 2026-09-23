@@ -10,7 +10,11 @@ pub enum Button {
 
 impl Button {
     pub fn from_pressed(pressed: bool) -> Self {
-        if pressed { Self::Pressed } else { Self::Released }
+        if pressed {
+            Self::Pressed
+        } else {
+            Self::Released
+        }
     }
 
     pub fn is_pressed(self) -> bool {

@@ -13,6 +13,7 @@ pub struct Row {
     pub label: Rect,
     pub track: Rect,
     pub value: Rect,
+    pub reset: Rect,
 }
 
 impl Row {
@@ -76,6 +77,12 @@ mod tests {
                 height: 6.0,
             },
             value: bounds,
+            reset: Rect {
+                x: 220.0,
+                y: 4.0,
+                width: 16.0,
+                height: 16.0,
+            },
         }
     }
 

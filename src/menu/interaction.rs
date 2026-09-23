@@ -1,4 +1,6 @@
+use super::action::Action;
 use super::field::{Control, Field};
+use super::hit::{flip, row_under, slide};
 use super::layout::Layout;
 use super::pointer::Pointer;
 use super::row::Row;
@@ -9,20 +11,6 @@ enum Grab {
     #[default]
     Idle,
     Dragging(Field),
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub enum Action {
-    #[default]
-    Idle,
-    Slide(Field, f32),
-    Flip(Field),
-}
-
-impl Action {
-    pub fn is_idle(self) -> bool {
-        matches!(self, Self::Idle)
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -50,9 +38,18 @@ impl Interaction {
     }
 
     fn press(&mut self, layout: &Layout, pointer: Pointer, settings: &Settings) -> Action {
+        if layout.save.contains(pointer.position()) {
+            return Action::Save;
+        }
+        if layout.discard.contains(pointer.position()) {
+            return Action::Discard;
+        }
         let Some(row) = row_under(layout, pointer) else {
             return Action::Idle;
         };
+        if row.reset.contains(pointer.position()) {
+            return Action::Reset(row.field);
+        }
         if !row.field.is_editable(settings) {
             return Action::Idle;
         }
@@ -71,39 +68,10 @@ impl Interaction {
     }
 }
 
-fn flip(row: Row, pointer: Pointer) -> Action {
-    if !row.switch_box().contains(pointer.position()) {
-        return Action::Idle;
-    }
-    Action::Flip(row.field)
-}
-
-fn slide(layout: &Layout, field: Field, pointer: Pointer) -> Action {
-    let Some(row) = layout.rows.iter().find(|row| row.field == field) else {
-        return Action::Idle;
-    };
-    Action::Slide(field, row.track.fraction_at(pointer.position().x))
-}
-
-fn row_under(layout: &Layout, pointer: Pointer) -> Option<Row> {
-    layout
-        .rows
-        .iter()
-        .find(|row| row.bounds.contains(pointer.position()))
-        .copied()
-}
-
-pub fn apply(action: Action, settings: &mut Settings) {
-    match action {
-        Action::Idle => {}
-        Action::Slide(field, fraction) => field.set_fraction(settings, fraction),
-        Action::Flip(field) => field.flip(settings),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{Action, Interaction, apply};
+    use super::Interaction;
+    use crate::menu::action::Action;
     use crate::menu::field::Field;
     use crate::menu::geometry::Point;
     use crate::menu::layout::Layout;
@@ -116,10 +84,14 @@ mod tests {
 
     fn pointer_at(point: Point, pressed: bool) -> Pointer {
         let mut pointer = Pointer::default();
-        pointer.move_by(point.x, point.y, crate::menu::vertex::Viewport {
-            width: 1920.0,
-            height: 1080.0,
-        });
+        pointer.move_by(
+            point.x,
+            point.y,
+            crate::menu::vertex::Viewport {
+                width: 1920.0,
+                height: 1080.0,
+            },
+        );
         pointer.set_button(Button::from_pressed(pressed));
         pointer
     }
@@ -265,14 +237,77 @@ mod tests {
     }
 
     #[test]
-    fn applying_an_action_writes_the_settings() {
-        let mut settings = Settings::default();
+    fn pressing_the_reset_button_resets_that_row() {
+        let layout = layout();
+        let row = layout.rows[1];
+        let point = Point {
+            x: row.reset.x + 2.0,
+            y: row.bounds.y + row.bounds.height / 2.0,
+        };
+        let mut interaction = Interaction::default();
 
-        apply(Action::Slide(Field::Saturation, 1.0), &mut settings);
-        apply(Action::Flip(Field::Enabled), &mut settings);
-        apply(Action::Idle, &mut settings);
+        let action = interaction.update(&layout, pointer_at(point, true), &Settings::default());
 
-        assert_eq!(settings.saturation, 2.0);
-        assert!(!settings.enabled);
+        assert_eq!(action, Action::Reset(Field::Exposure));
+    }
+
+    #[test]
+    fn a_locked_row_can_still_be_reset() {
+        let layout = layout();
+        let row = layout
+            .rows
+            .iter()
+            .find(|row| row.field == Field::PeakNits)
+            .copied()
+            .expect("linha");
+        let point = Point {
+            x: row.reset.x + 2.0,
+            y: row.bounds.y + row.bounds.height / 2.0,
+        };
+        let mut interaction = Interaction::default();
+
+        let action = interaction.update(&layout, pointer_at(point, true), &Settings::default());
+
+        assert_eq!(action, Action::Reset(Field::PeakNits));
+    }
+
+    #[test]
+    fn the_footer_buttons_report_their_own_actions() {
+        let layout = layout();
+        let save = Point {
+            x: layout.save.x + 4.0,
+            y: layout.save.y + 2.0,
+        };
+        let discard = Point {
+            x: layout.discard.x + 4.0,
+            y: layout.discard.y + 2.0,
+        };
+
+        let mut interaction = Interaction::default();
+        assert_eq!(
+            interaction.update(&layout, pointer_at(save, true), &Settings::default()),
+            Action::Save
+        );
+
+        let mut interaction = Interaction::default();
+        assert_eq!(
+            interaction.update(&layout, pointer_at(discard, true), &Settings::default()),
+            Action::Discard
+        );
+    }
+
+    #[test]
+    fn saving_fires_only_once_per_press() {
+        let layout = layout();
+        let save = Point {
+            x: layout.save.x + 4.0,
+            y: layout.save.y + 2.0,
+        };
+        let mut interaction = Interaction::default();
+        interaction.update(&layout, pointer_at(save, true), &Settings::default());
+
+        let action = interaction.update(&layout, pointer_at(save, true), &Settings::default());
+
+        assert_eq!(action, Action::Idle);
     }
 }

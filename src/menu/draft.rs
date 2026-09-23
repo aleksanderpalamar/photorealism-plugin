@@ -1,5 +1,12 @@
 use crate::settings::Settings;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Changes {
+    #[default]
+    None,
+    Pending,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Draft {
     edited: Option<Settings>,
@@ -13,11 +20,22 @@ impl Draft {
     pub fn edit(&mut self, stored: Settings) -> &mut Settings {
         self.edited.get_or_insert(stored)
     }
+
+    pub fn changes(&self) -> Changes {
+        match self.edited {
+            Some(_) => Changes::Pending,
+            None => Changes::None,
+        }
+    }
+
+    pub fn discard(&mut self) {
+        self.edited = None;
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Draft;
+    use super::{Changes, Draft};
     use crate::settings::Settings;
 
     fn stored() -> Settings {
@@ -53,5 +71,22 @@ mod tests {
         };
 
         assert_eq!(draft.effective(reloaded).contrast, 1.4);
+    }
+
+    #[test]
+    fn an_untouched_draft_reports_no_changes() {
+        assert_eq!(Draft::default().changes(), Changes::None);
+    }
+
+    #[test]
+    fn discarding_returns_to_the_stored_configuration() {
+        let mut draft = Draft::default();
+        draft.edit(stored()).contrast = 1.4;
+        assert_eq!(draft.changes(), Changes::Pending);
+
+        draft.discard();
+
+        assert_eq!(draft.effective(stored()), stored());
+        assert_eq!(draft.changes(), Changes::None);
     }
 }

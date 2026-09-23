@@ -3,12 +3,12 @@ use std::time::{Duration, Instant};
 
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
-use crate::config::{CONFIG_FILE_NAME, ConfigUpdate, ConfigWatcher, FileConfigSource};
+use crate::config::{CONFIG_FILE_NAME, ConfigFile, ConfigUpdate, ConfigWatcher};
 use crate::dinput;
 use crate::graphics::Renderer;
 use crate::input::Shortcut;
 use crate::logging;
-use crate::menu::{Session, Viewport};
+use crate::menu::{self, Request, Session, Viewport};
 use crate::settings::Settings;
 
 static RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
@@ -21,7 +21,7 @@ const DEFAULT_VIEWPORT: Viewport = Viewport {
 
 struct Runtime {
     renderer: Option<Renderer>,
-    config: ConfigWatcher<FileConfigSource>,
+    config: ConfigWatcher<ConfigFile>,
     session: Session,
     shortcut: Shortcut,
     active_force_hdr: bool,
@@ -30,7 +30,7 @@ struct Runtime {
 
 impl Runtime {
     fn new() -> Self {
-        let source = FileConfigSource::new(logging::plugin_path(CONFIG_FILE_NAME));
+        let source = ConfigFile::new(logging::plugin_path(CONFIG_FILE_NAME));
         let mut config = ConfigWatcher::new(source, RELOAD_INTERVAL);
         let settings = config.poll(Instant::now()).settings();
         logging::write(&format!("Configuracao inicial: {}", describe(settings)));
@@ -52,7 +52,11 @@ impl Runtime {
         }
         let viewport = self.viewport();
         self.poll_menu(viewport);
-        let settings = self.session.settings(stored, viewport);
+        let update = self.session.update(stored, viewport);
+        if matches!(update.request, Request::Save) {
+            self.store(update.settings);
+        }
+        let settings = update.settings;
         if !settings.enabled && !self.session.is_visible() {
             return;
         }
@@ -63,6 +67,15 @@ impl Runtime {
         if unsafe { renderer.render(swap_chain, settings, &session) }.is_err() {
             self.report_error("Falha ao aplicar o passe de cor e tonemap.");
         }
+    }
+
+    fn store(&mut self, settings: Settings) {
+        if !self.config.store(&menu::serialize(&settings)) {
+            logging::write("Falha ao gravar a configuracao pelo menu.");
+            return;
+        }
+        self.session.saved();
+        logging::write("Configuracao gravada pelo menu.");
     }
 
     fn viewport(&self) -> Viewport {
@@ -127,11 +140,7 @@ impl Runtime {
 }
 
 fn menu_state(visible: bool) -> &'static str {
-    if visible {
-        "aberto"
-    } else {
-        "fechado"
-    }
+    if visible { "aberto" } else { "fechado" }
 }
 
 fn describe(settings: Settings) -> String {

@@ -10,7 +10,7 @@ use windows::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 use windows::core::{BOOL, GUID, HRESULT, PCSTR, PCWSTR};
 
-use crate::config::{CONFIG_FILE_NAME, ConfigSource, FileConfigSource};
+use crate::config::{CONFIG_FILE_NAME, ConfigFile, ConfigSource};
 use crate::settings::Settings;
 use crate::{hooks, logging};
 
@@ -22,7 +22,7 @@ static HDR_ENVIRONMENT: OnceLock<()> = OnceLock::new();
 
 fn prepare_dxgi() {
     HDR_ENVIRONMENT.get_or_init(|| {
-        let source = FileConfigSource::new(logging::plugin_path(CONFIG_FILE_NAME));
+        let source = ConfigFile::new(logging::plugin_path(CONFIG_FILE_NAME));
         let settings = source
             .read()
             .map_or_else(Settings::default, |contents| Settings::parse(&contents));

@@ -1,3 +1,4 @@
+use super::draft::Changes;
 use super::draw_list;
 use super::geometry::Point;
 use super::layout::Layout;
@@ -24,17 +25,19 @@ pub fn layout_for(viewport: Viewport) -> Layout {
 pub fn vertices(
     settings: &Settings,
     pointer: Point,
+    changes: Changes,
     viewport: Viewport,
     title: &str,
 ) -> Vec<Vertex> {
     let layout = layout_for(viewport);
-    let primitives = draw_list::build(&layout, settings, title, Some(pointer));
+    let primitives = draw_list::build(&layout, settings, title, changes, Some(pointer));
     vertex::build(&primitives, viewport)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{scale_for, vertices};
+    use crate::menu::draft::Changes;
     use crate::menu::geometry::Point;
     use crate::menu::vertex::{VERTICES_PER_PRIMITIVE, Viewport};
     use crate::settings::Settings;
@@ -61,6 +64,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             Point { x: 10.0, y: 10.0 },
+            Changes::None,
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -74,6 +78,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             Point { x: 10.0, y: 10.0 },
+            Changes::None,
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -89,6 +94,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             Point { x: 10.0, y: 10.0 },
+            Changes::None,
             viewport(1920.0, 1080.0),
             "menu",
         );
