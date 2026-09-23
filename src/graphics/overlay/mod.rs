@@ -5,7 +5,7 @@ use windows::Win32::Graphics::Direct3D11::*;
 
 use super::resources::FrameResources;
 use super::shaders::{self, Source};
-use crate::menu::{self, Vertex, Viewport};
+use crate::menu::Vertex;
 use crate::settings::Settings;
 use resources::VertexBuffer;
 
@@ -50,18 +50,13 @@ impl Overlay {
         frame: &FrameResources,
         settings: Settings,
         peak_nits: f32,
-        title: &str,
+        vertices: &[Vertex],
     ) -> windows::core::Result<()> {
-        let viewport = Viewport {
-            width: frame.width as f32,
-            height: frame.height as f32,
-        };
-        let vertices = menu::vertices(&settings, viewport, title);
         if vertices.is_empty() {
             return Ok(());
         }
         self.reserve(device, vertices.len())?;
-        unsafe { self.upload(context, &vertices)? };
+        unsafe { self.upload(context, vertices)? };
         unsafe { self.update_constants(context, frame, settings, peak_nits) };
         unsafe { self.bind(context, frame) };
         unsafe { context.Draw(vertices.len() as u32, 0) };

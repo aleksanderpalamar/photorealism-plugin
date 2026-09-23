@@ -20,6 +20,11 @@ impl Range {
         }
         ((value - self.minimum) / span).clamp(0.0, 1.0)
     }
+
+    pub fn value_at(self, fraction: f32) -> f32 {
+        let span = self.maximum - self.minimum;
+        self.minimum + span * fraction.clamp(0.0, 1.0)
+    }
 }
 
 pub const EXPOSURE: Range = Range::new(-4.0, 4.0);
@@ -51,6 +56,14 @@ mod tests {
         assert_eq!(EXPOSURE.fraction_of(4.0), 1.0);
         assert_eq!(EXPOSURE.fraction_of(0.0), 0.5);
         assert_eq!(EXPOSURE.fraction_of(100.0), 1.0);
+    }
+
+    #[test]
+    fn converts_a_fraction_back_into_a_value() {
+        assert_eq!(TEMPERATURE.value_at(0.0), 2000.0);
+        assert_eq!(TEMPERATURE.value_at(1.0), 12_000.0);
+        assert_eq!(TEMPERATURE.value_at(0.5), 7000.0);
+        assert_eq!(EXPOSURE.value_at(-1.0), -4.0);
     }
 
     #[test]

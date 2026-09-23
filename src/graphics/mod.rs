@@ -13,7 +13,7 @@ use windows::Win32::Graphics::Direct3D11::{
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
 use crate::logging;
-use crate::menu::Visibility;
+use crate::menu::{Session, Viewport};
 use crate::settings::Settings;
 use constants::ShaderSettings;
 use display::DisplayLuminance;
@@ -72,7 +72,7 @@ impl Renderer {
         &mut self,
         swap_chain: &IDXGISwapChain,
         settings: Settings,
-        visibility: Visibility,
+        session: &Session,
     ) -> windows::core::Result<()> {
         let back_buffer: ID3D11Texture2D = unsafe { swap_chain.GetBuffer(0)? };
         let description = texture_description(&back_buffer);
@@ -88,19 +88,30 @@ impl Renderer {
         if settings.enabled {
             unsafe { self.draw(&back_buffer, settings) };
         }
-        let menu = unsafe { self.draw_menu(settings, visibility) };
+        let menu = unsafe { self.draw_menu(settings, session) };
         unsafe { state.restore(&self.context) };
         menu
+    }
+
+    pub fn viewport(&self) -> Option<Viewport> {
+        self.frame.as_ref().map(|frame| Viewport {
+            width: frame.width as f32,
+            height: frame.height as f32,
+        })
     }
 
     unsafe fn draw_menu(
         &mut self,
         settings: Settings,
-        visibility: Visibility,
+        session: &Session,
     ) -> windows::core::Result<()> {
-        if !visibility.is_visible() {
+        if !session.is_visible() {
             return Ok(());
         }
+        let Some(viewport) = self.viewport() else {
+            return Ok(());
+        };
+        let vertices = session.vertices(&settings, viewport, TITLE);
         let Self {
             device,
             context,
@@ -115,7 +126,7 @@ impl Renderer {
         let peak = settings
             .hdr_peak_nits
             .resolve(display.map(|display| display.peak_nits));
-        unsafe { overlay.draw(device, context, frame, settings, peak, TITLE) }
+        unsafe { overlay.draw(device, context, frame, settings, peak, &vertices) }
     }
 
     fn ensure_frame(

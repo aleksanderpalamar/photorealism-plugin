@@ -26,6 +26,15 @@ impl Row {
         }
     }
 
+    pub fn slider_area(self) -> Rect {
+        Rect {
+            x: self.track.x,
+            y: self.bounds.y,
+            width: self.track.width,
+            height: self.bounds.height,
+        }
+    }
+
     pub fn switch_box(self) -> Rect {
         let size = self.bounds.height * SWITCH_SIZE / ROW_HEIGHT;
         Rect {
@@ -86,6 +95,15 @@ mod tests {
 
         assert_eq!(handle.width, 10.0);
         assert_eq!(handle.height, 18.0);
+    }
+
+    #[test]
+    fn the_slider_area_spans_the_track_and_the_row_height() {
+        let area = row().slider_area();
+
+        assert_eq!(area.x, row().track.x);
+        assert_eq!(area.width, row().track.width);
+        assert_eq!(area.height, row().bounds.height);
     }
 
     #[test]

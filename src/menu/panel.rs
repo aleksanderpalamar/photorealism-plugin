@@ -12,19 +12,30 @@ pub fn scale_for(height: f32) -> f32 {
     (height / REFERENCE_HEIGHT).floor().max(MINIMUM_SCALE)
 }
 
-pub fn vertices(settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
+pub fn layout_for(viewport: Viewport) -> Layout {
     let scale = scale_for(viewport.height);
     let origin = Point {
         x: MARGIN * scale,
         y: MARGIN * scale,
     };
-    let layout = Layout::build(origin, scale);
-    vertex::build(&draw_list::build(&layout, settings, title), viewport)
+    Layout::build(origin, scale)
+}
+
+pub fn vertices(
+    settings: &Settings,
+    pointer: Point,
+    viewport: Viewport,
+    title: &str,
+) -> Vec<Vertex> {
+    let layout = layout_for(viewport);
+    let primitives = draw_list::build(&layout, settings, title, Some(pointer));
+    vertex::build(&primitives, viewport)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{scale_for, vertices};
+    use crate::menu::geometry::Point;
     use crate::menu::vertex::{VERTICES_PER_PRIMITIVE, Viewport};
     use crate::settings::Settings;
 
@@ -47,7 +58,12 @@ mod tests {
 
     #[test]
     fn the_panel_produces_whole_triangles() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            Point { x: 10.0, y: 10.0 },
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         assert!(!built.is_empty());
         assert_eq!(built.len() % VERTICES_PER_PRIMITIVE, 0);
@@ -55,7 +71,12 @@ mod tests {
 
     #[test]
     fn the_panel_stays_inside_clip_space() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            Point { x: 10.0, y: 10.0 },
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         for vertex in &built {
             assert!(vertex.position_uv[0] >= -1.0 && vertex.position_uv[0] <= 1.0);
@@ -65,7 +86,12 @@ mod tests {
 
     #[test]
     fn the_panel_sits_in_the_upper_left_corner() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            Point { x: 10.0, y: 10.0 },
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         assert!(built[0].position_uv[0] < -0.9);
         assert!(built[0].position_uv[1] > 0.9);
