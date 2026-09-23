@@ -56,11 +56,11 @@ Todo código produzido deve permanecer em conformidade com estas regras.
 
 - Preferir enums em vez de flags booleanas quando existirem múltiplos estados possíveis.
 Evitar operações que assumem sucesso sem verificar erros.
-Em std::optional, evitar usar value() quando a ausência for um caso normal sem antes tratar isso.
-Evitar exceções ou asserts para situações esperadas de execução.
+Em Option<T>, evitar unwrap() e expect() quando a ausência for um caso normal sem antes tratar isso.
+Evitar panic!, unreachable! e assert! para situações esperadas de execução.
 Preferir tratamento explícito do erro.
 
-- Utilizar std::optional<T> quando um valor pode não existir.
+- Utilizar Option<T> quando um valor pode não existir.
 
 - Não silenciar warnings sem uma justificativa clara.
 
