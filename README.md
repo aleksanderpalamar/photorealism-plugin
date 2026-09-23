@@ -20,7 +20,8 @@ O projeto usa a mesma estratégia básica da implementação de referência: `dx
 - restauração do estado D3D11 usado pelo jogo antes do passe;
 - recarga da configuração em tempo de execução, sem reiniciar o jogo;
 - detecção do pico de brilho do monitor pelo DXGI;
-- luminância calculada nas primárias do espaço de saída, Rec.709 ou Rec.2020.
+- luminância calculada nas primárias do espaço de saída, Rec.709 ou Rec.2020;
+- painel em tela com os valores atuais, aberto e fechado por `CTRL+P`.
 
 O shader é compilado em tempo de execução por `d3dcompiler_47.dll`, normalmente disponível no Windows e no Proton.
 
@@ -92,6 +93,16 @@ Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos val
 Saturação e balanço de branco dependem do peso de luminância de cada canal. Em HDR10-PQ o conteúdo está em Rec.2020 e os pesos usados são os dessa norma; em SDR e scRGB valem os de Rec.709. A gradação continua acontecendo nas primárias nativas de cada modo, sem conversão de gamut, para não descartar as cores fora do Rec.709 que o HDR10 carrega. Por isso `temperature` e `tint` têm força um pouco diferente entre os modos e merecem calibração separada.
 
 O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo dentro de uma instância própria do Gamescope, inclua `--hdr-enabled`. O suporte nativo do jogo foi introduzido na versão 1.57.
+
+## Painel em tela
+
+`CTRL+P` abre e fecha um painel no canto superior esquerdo com os parâmetros e seus valores atuais. Cada mudança de estado é registrada no log.
+
+Nesta versão o painel é apenas leitura: ele mostra o que está em vigor, e os valores continuam sendo alterados pelo arquivo de configuração, que é relido a cada segundo. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração.
+
+O painel é desenhado depois do passe de cor, e suas cores passam pela mesma codificação de saída — PQ em HDR10, escala por paper white em scRGB, sRGB em SDR. Por isso ele aparece com o mesmo brilho de referência em qualquer um dos três modos, em vez de estourar em HDR.
+
+Se `enabled=false`, o passe de cor não roda mas o painel continua podendo ser aberto.
 
 ## Desenvolvimento
 

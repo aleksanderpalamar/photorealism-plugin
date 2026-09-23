@@ -53,7 +53,11 @@ fn a_zero_amount_clips_at_the_limit() {
 
 #[test]
 fn no_amount_pushes_the_output_past_the_limit() {
-    let limits = [1.0, relative_peak(400.0, 203.0), relative_peak(4000.0, 203.0)];
+    let limits = [
+        1.0,
+        relative_peak(400.0, 203.0),
+        relative_peak(4000.0, 203.0),
+    ];
     for limit in limits {
         for step in 0..=10 {
             let amount = step as f32 / 10.0;

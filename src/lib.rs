@@ -3,12 +3,16 @@ mod color;
 #[cfg(any(windows, test))]
 mod config;
 #[cfg(any(windows, test))]
+mod menu;
+#[cfg(any(windows, test))]
 mod settings;
 
 #[cfg(windows)]
 mod graphics;
 #[cfg(windows)]
 mod hooks;
+#[cfg(windows)]
+mod input;
 #[cfg(windows)]
 mod logging;
 #[cfg(windows)]

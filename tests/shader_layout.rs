@@ -1,4 +1,5 @@
 const SHADER: &str = include_str!("../shaders/photorealism.hlsl");
+const OVERLAY: &str = include_str!("../shaders/overlay.hlsl");
 const REGISTER_COMPONENTS: usize = 4;
 
 const EXPECTED_FIELDS: [(&str, &str); 14] = [
@@ -19,11 +20,21 @@ const EXPECTED_FIELDS: [(&str, &str); 14] = [
 ];
 
 fn settings_fields() -> Vec<(String, String)> {
-    let start = SHADER
-        .find("cbuffer SettingsBuffer")
-        .expect("declaracao do cbuffer");
-    let body = &SHADER[start..];
-    let end = body.find("};").expect("fim do cbuffer");
+    fields(SHADER, "cbuffer SettingsBuffer")
+}
+
+fn overlay_fields() -> Vec<(String, String)> {
+    fields(OVERLAY, "cbuffer OverlayBuffer")
+}
+
+fn overlay_vertex_fields() -> Vec<(String, String)> {
+    fields(OVERLAY, "struct OverlayVertex")
+}
+
+fn fields(source: &str, declaration: &str) -> Vec<(String, String)> {
+    let start = source.find(declaration).expect("declaracao");
+    let body = &source[start..];
+    let end = body.find("};").expect("fim da declaracao");
     body[..end]
         .lines()
         .filter_map(|line| line.trim().strip_suffix(';'))
@@ -75,4 +86,51 @@ fn the_constant_buffer_fills_whole_registers() {
         .sum();
 
     assert_eq!(total % REGISTER_COMPONENTS, 0);
+}
+
+const EXPECTED_OVERLAY_FIELDS: [(&str, &str); 4] = [
+    ("float", "OutputMode"),
+    ("float", "HdrPaperWhiteNits"),
+    ("float", "HdrPeakNits"),
+    ("float", "OutputNeedsSrgbEncode"),
+];
+
+const EXPECTED_VERTEX_FIELDS: [(&str, &str); 3] = [
+    ("float4", "position_uv"),
+    ("float4", "color"),
+    ("float4", "shape"),
+];
+
+fn named(expected: &[(&str, &str)]) -> Vec<(String, String)> {
+    expected
+        .iter()
+        .map(|(kind, name)| ((*kind).to_owned(), (*name).to_owned()))
+        .collect()
+}
+
+#[test]
+fn the_overlay_constant_buffer_matches_the_rust_structure() {
+    assert_eq!(overlay_fields(), named(&EXPECTED_OVERLAY_FIELDS));
+}
+
+#[test]
+fn the_overlay_constant_buffer_fills_one_whole_register() {
+    let total: usize = overlay_fields()
+        .iter()
+        .map(|(kind, _)| components(kind))
+        .sum();
+
+    assert_eq!(total, REGISTER_COMPONENTS);
+}
+
+#[test]
+fn the_overlay_vertex_matches_the_rust_structure() {
+    assert_eq!(overlay_vertex_fields(), named(&EXPECTED_VERTEX_FIELDS));
+}
+
+#[test]
+fn every_overlay_vertex_field_fills_a_whole_register() {
+    for (kind, name) in overlay_vertex_fields() {
+        assert_eq!(components(&kind), REGISTER_COMPONENTS, "{name}");
+    }
 }
