@@ -35,7 +35,7 @@ impl OutputMode {
 
 #[cfg(test)]
 mod tests {
-    use super::{BT2020_LUMINANCE, BT709_LUMINANCE, OutputMode};
+    use super::{BT709_LUMINANCE, BT2020_LUMINANCE, OutputMode};
 
     #[test]
     fn hdr10_uses_the_bt2020_primaries() {

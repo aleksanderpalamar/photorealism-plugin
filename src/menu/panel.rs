@@ -24,13 +24,21 @@ pub fn layout_for(viewport: Viewport) -> Layout {
 
 pub fn vertices(
     settings: &Settings,
+    resolved_peak: f32,
     pointer: Point,
     changes: Changes,
     viewport: Viewport,
     title: &str,
 ) -> Vec<Vertex> {
     let layout = layout_for(viewport);
-    let primitives = draw_list::build(&layout, settings, title, changes, Some(pointer));
+    let primitives = draw_list::build(
+        &layout,
+        settings,
+        resolved_peak,
+        title,
+        changes,
+        Some(pointer),
+    );
     vertex::build(&primitives, viewport)
 }
 
@@ -63,6 +71,7 @@ mod tests {
     fn the_panel_produces_whole_triangles() {
         let built = vertices(
             &Settings::default(),
+            1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
             viewport(1920.0, 1080.0),
@@ -77,6 +86,7 @@ mod tests {
     fn the_panel_stays_inside_clip_space() {
         let built = vertices(
             &Settings::default(),
+            1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
             viewport(1920.0, 1080.0),
@@ -93,6 +103,7 @@ mod tests {
     fn the_panel_sits_in_the_upper_left_corner() {
         let built = vertices(
             &Settings::default(),
+            1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
             viewport(1920.0, 1080.0),

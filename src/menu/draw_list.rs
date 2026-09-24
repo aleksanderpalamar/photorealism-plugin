@@ -12,6 +12,7 @@ const ARROW_ROWS: usize = 10;
 pub fn build(
     layout: &Layout,
     settings: &Settings,
+    resolved_peak: f32,
     title: &str,
     changes: Changes,
     pointer: Option<Point>,
@@ -35,7 +36,7 @@ pub fn build(
         palette::TITLE_TEXT,
     );
     for row in &layout.rows {
-        push_row(&mut primitives, row, settings, layout.scale);
+        push_row(&mut primitives, row, settings, resolved_peak, layout.scale);
     }
     push_footer(&mut primitives, layout, changes);
     if let Some(position) = pointer {

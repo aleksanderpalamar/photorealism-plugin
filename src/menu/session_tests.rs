@@ -89,6 +89,33 @@ fn an_edited_parameter_survives_a_reload_from_disk() {
 }
 
 #[test]
+fn closing_the_menu_cancels_an_active_drag() {
+    let mut session = Session::default();
+    session.toggle(viewport());
+    press_first_track(&mut session, 0.0);
+    assert_eq!(session.update(stored(), viewport()).settings.exposure, -4.0);
+
+    session.toggle(viewport());
+    session.toggle(viewport());
+    session.set_button(true);
+
+    assert_eq!(session.update(stored(), viewport()).settings.exposure, -4.0);
+}
+
+#[test]
+fn reopening_starts_from_a_released_pointer() {
+    let mut session = Session::default();
+    session.toggle(viewport());
+    press_first_track(&mut session, 1.0);
+    session.update(stored(), viewport());
+
+    session.toggle(viewport());
+    session.toggle(viewport());
+
+    assert_eq!(session.update(stored(), viewport()).settings.exposure, 4.0);
+}
+
+#[test]
 fn a_closed_menu_keeps_what_was_edited() {
     let mut session = Session::default();
     session.toggle(viewport());
@@ -104,7 +131,11 @@ fn a_closed_menu_keeps_what_was_edited() {
 fn the_panel_only_draws_while_it_is_open() {
     let session = Session::default();
 
-    assert!(!session.vertices(&stored(), viewport(), "menu").is_empty());
+    assert!(
+        !session
+            .vertices(&stored(), 1000.0, viewport(), "menu")
+            .is_empty()
+    );
 }
 
 fn press(session: &mut Session, x: f32, y: f32) {
@@ -143,17 +174,31 @@ fn pressing_discard_returns_to_the_stored_configuration() {
 }
 
 #[test]
-fn accepting_a_save_clears_the_pending_changes() {
+fn the_draft_survives_until_the_file_carries_it() {
     let mut session = Session::default();
     session.toggle(viewport());
     press_first_track(&mut session, 1.0);
-    session.update(stored(), viewport());
-
+    let edited = session.update(stored(), viewport()).settings;
     session.set_button(false);
-    session.saved();
+
+    session.settle(stored());
+
+    assert_eq!(session.changes(), Changes::Pending);
+    assert_eq!(session.update(stored(), viewport()).settings, edited);
+}
+
+#[test]
+fn the_draft_is_released_once_the_file_matches_it() {
+    let mut session = Session::default();
+    session.toggle(viewport());
+    press_first_track(&mut session, 1.0);
+    let edited = session.update(stored(), viewport()).settings;
+    session.set_button(false);
+
+    session.settle(edited);
 
     assert_eq!(session.changes(), Changes::None);
-    assert_eq!(session.update(stored(), viewport()).settings, stored());
+    assert_eq!(session.update(edited, viewport()).settings, edited);
 }
 
 #[test]

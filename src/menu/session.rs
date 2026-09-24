@@ -22,9 +22,8 @@ impl Session {
 
     pub fn toggle(&mut self, viewport: Viewport) {
         self.visibility = self.visibility.toggled();
-        if self.visibility.is_visible() {
-            self.pointer.center(viewport);
-        }
+        self.interaction = Interaction::default();
+        self.pointer.center(viewport);
     }
 
     pub fn move_pointer(&mut self, horizontal: f32, vertical: f32, viewport: Viewport) {
@@ -48,7 +47,10 @@ impl Session {
         resolve::resolve(action, &mut self.draft, stored, current)
     }
 
-    pub fn saved(&mut self) {
+    pub fn settle(&mut self, stored: Settings) {
+        if self.draft.effective(stored) != stored {
+            return;
+        }
         self.draft.discard();
     }
 
@@ -56,9 +58,16 @@ impl Session {
         self.draft.changes()
     }
 
-    pub fn vertices(&self, settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
+    pub fn vertices(
+        &self,
+        settings: &Settings,
+        resolved_peak: f32,
+        viewport: Viewport,
+        title: &str,
+    ) -> Vec<Vertex> {
         panel::vertices(
             settings,
+            resolved_peak,
             self.pointer.position(),
             self.changes(),
             viewport,

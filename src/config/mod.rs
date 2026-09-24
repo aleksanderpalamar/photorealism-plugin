@@ -65,13 +65,6 @@ impl<S: ConfigSource> ConfigWatcher<S> {
         ConfigUpdate::Reloaded(parsed)
     }
 
-    pub fn store(&mut self, contents: &str) -> bool
-    where
-        S: ConfigSink,
-    {
-        self.source.write(contents)
-    }
-
     fn is_due(&self, now: Instant) -> bool {
         let Some(last) = self.last_poll else {
             return true;
