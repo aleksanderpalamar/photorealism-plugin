@@ -1,9 +1,10 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock, TryLockError};
 use std::time::{Duration, Instant};
 
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
-use crate::config::{CONFIG_FILE_NAME, ConfigFile, ConfigUpdate, ConfigWatcher};
+use crate::config::{CONFIG_FILE_NAME, ConfigFile, ConfigSink, ConfigUpdate, ConfigWatcher};
 use crate::dinput;
 use crate::graphics::Renderer;
 use crate::input::Shortcut;
@@ -22,6 +23,7 @@ const DEFAULT_VIEWPORT: Viewport = Viewport {
 struct Runtime {
     renderer: Option<Renderer>,
     config: ConfigWatcher<ConfigFile>,
+    config_path: PathBuf,
     session: Session,
     shortcut: Shortcut,
     active_force_hdr: bool,
@@ -30,13 +32,15 @@ struct Runtime {
 
 impl Runtime {
     fn new() -> Self {
-        let source = ConfigFile::new(logging::plugin_path(CONFIG_FILE_NAME));
+        let config_path = logging::plugin_path(CONFIG_FILE_NAME);
+        let source = ConfigFile::new(config_path.clone());
         let mut config = ConfigWatcher::new(source, RELOAD_INTERVAL);
         let settings = config.poll(Instant::now()).settings();
         logging::write(&format!("Configuracao inicial: {}", describe(settings)));
         Self {
             renderer: None,
             config,
+            config_path,
             session: Session::default(),
             shortcut: Shortcut::default(),
             active_force_hdr: settings.force_hdr,
@@ -46,6 +50,7 @@ impl Runtime {
 
     unsafe fn process(&mut self, swap_chain: &IDXGISwapChain) {
         let stored = self.refresh_settings();
+        self.session.settle(stored);
         if unsafe { self.ensure_renderer(swap_chain) }.is_err() {
             self.report_error("Falha ao inicializar o pipeline de cor e tonemap.");
             return;
@@ -69,13 +74,10 @@ impl Runtime {
         }
     }
 
-    fn store(&mut self, settings: Settings) {
-        if !self.config.store(&menu::serialize(&settings)) {
-            logging::write("Falha ao gravar a configuracao pelo menu.");
-            return;
-        }
-        self.session.saved();
-        logging::write("Configuracao gravada pelo menu.");
+    fn store(&self, settings: Settings) {
+        let contents = menu::serialize(&settings);
+        let sink = ConfigFile::new(self.config_path.clone());
+        std::thread::spawn(move || report_store(sink.write(&contents)));
     }
 
     fn viewport(&self) -> Viewport {
@@ -137,6 +139,14 @@ impl Runtime {
         logging::write(message);
         self.error_reported = true;
     }
+}
+
+fn report_store(stored: bool) {
+    if stored {
+        logging::write("Configuracao gravada pelo menu.");
+        return;
+    }
+    logging::write("Falha ao gravar a configuracao pelo menu.");
 }
 
 fn menu_state(visible: bool) -> &'static str {

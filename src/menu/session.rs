@@ -48,7 +48,10 @@ impl Session {
         resolve::resolve(action, &mut self.draft, stored, current)
     }
 
-    pub fn saved(&mut self) {
+    pub fn settle(&mut self, stored: Settings) {
+        if self.draft.effective(stored) != stored {
+            return;
+        }
         self.draft.discard();
     }
 
@@ -214,17 +217,31 @@ mod tests {
     }
 
     #[test]
-    fn accepting_a_save_clears_the_pending_changes() {
+    fn the_draft_survives_until_the_file_carries_it() {
         let mut session = Session::default();
         session.toggle(viewport());
         press_first_track(&mut session, 1.0);
-        session.update(stored(), viewport());
-
+        let edited = session.update(stored(), viewport()).settings;
         session.set_button(false);
-        session.saved();
+
+        session.settle(stored());
+
+        assert_eq!(session.changes(), Changes::Pending);
+        assert_eq!(session.update(stored(), viewport()).settings, edited);
+    }
+
+    #[test]
+    fn the_draft_is_released_once_the_file_matches_it() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        press_first_track(&mut session, 1.0);
+        let edited = session.update(stored(), viewport()).settings;
+        session.set_button(false);
+
+        session.settle(edited);
 
         assert_eq!(session.changes(), Changes::None);
-        assert_eq!(session.update(stored(), viewport()).settings, stored());
+        assert_eq!(session.update(edited, viewport()).settings, edited);
     }
 
     #[test]

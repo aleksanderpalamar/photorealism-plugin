@@ -1,4 +1,4 @@
-use crate::settings::Settings;
+use crate::settings::{PeakNits, Settings};
 
 pub fn serialize(settings: &Settings) -> String {
     format!(
@@ -14,8 +14,15 @@ pub fn serialize(settings: &Settings) -> String {
         settings.tint,
         settings.highlight_rolloff,
         settings.hdr_paper_white_nits,
-        settings.hdr_peak_nits,
+        peak(settings.hdr_peak_nits),
     )
+}
+
+fn peak(nits: PeakNits) -> String {
+    match nits {
+        PeakNits::Auto => PeakNits::Auto.to_string(),
+        PeakNits::Fixed(value) => value.to_string(),
+    }
 }
 
 #[cfg(test)]
@@ -47,6 +54,17 @@ mod tests {
             hdr_peak_nits: PeakNits::Fixed(1499.0),
         };
 
+        assert_eq!(round_trip(settings), settings);
+    }
+
+    #[test]
+    fn a_fractional_peak_is_not_rounded_away() {
+        let settings = Settings {
+            hdr_peak_nits: PeakNits::Fixed(1499.5),
+            ..Settings::default()
+        };
+
+        assert!(serialize(&settings).contains("hdr_peak_nits=1499.5\n"));
         assert_eq!(round_trip(settings), settings);
     }
 

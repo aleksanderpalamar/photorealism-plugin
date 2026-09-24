@@ -65,13 +65,6 @@ impl<S: ConfigSource> ConfigWatcher<S> {
         ConfigUpdate::Reloaded(parsed)
     }
 
-    pub fn store(&mut self, contents: &str) -> bool
-    where
-        S: ConfigSink,
-    {
-        self.source.write(contents)
-    }
-
     fn is_due(&self, now: Instant) -> bool {
         let Some(last) = self.last_poll else {
             return true;
@@ -86,7 +79,7 @@ mod tests {
     use std::rc::Rc;
     use std::time::{Duration, Instant};
 
-    use super::{ConfigSink, ConfigSource, ConfigUpdate, ConfigWatcher};
+    use super::{ConfigSource, ConfigUpdate, ConfigWatcher};
 
     const INTERVAL: Duration = Duration::from_secs(1);
 
@@ -111,22 +104,11 @@ mod tests {
             self.reads.set(self.reads.get() + 1);
             self.contents.borrow().clone()
         }
-
-        fn store(&self, contents: &str) -> bool {
-            self.replace(Some(contents));
-            true
-        }
     }
 
     impl ConfigSource for Rc<FakeSource> {
         fn read(&self) -> Option<String> {
             self.load()
-        }
-    }
-
-    impl ConfigSink for Rc<FakeSource> {
-        fn write(&self, contents: &str) -> bool {
-            self.store(contents)
         }
     }
 
@@ -199,19 +181,5 @@ mod tests {
         let update = watcher.poll(start + INTERVAL);
 
         assert!(matches!(update, ConfigUpdate::Unchanged(_)));
-    }
-
-    #[test]
-    fn storing_replaces_what_the_next_poll_reads() {
-        let source = FakeSource::new("exposure=1.25");
-        let mut watcher = watcher(&source);
-        let start = Instant::now();
-        watcher.poll(start);
-
-        assert!(watcher.store("exposure=0.5"));
-        let update = watcher.poll(start + INTERVAL);
-
-        assert_eq!(update.settings().exposure, 0.5);
-        assert!(matches!(update, ConfigUpdate::Reloaded(_)));
     }
 }
