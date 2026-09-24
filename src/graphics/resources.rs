@@ -6,7 +6,7 @@ use windows::Win32::Graphics::Dxgi::Common::{
 };
 
 use super::constants::ShaderSettings;
-use super::shaders;
+use super::shaders::{self, Source};
 use crate::color::OutputMode;
 
 pub struct FrameResources {
@@ -79,14 +79,14 @@ fn needs_manual_srgb(format: DXGI_FORMAT) -> bool {
 }
 
 pub fn create_vertex_shader(device: &ID3D11Device) -> windows::core::Result<ID3D11VertexShader> {
-    let code = shaders::compile(b"VSMain\0", b"vs_5_0\0")?;
+    let code = shaders::compile(Source::Photorealism, b"VSMain\0", b"vs_5_0\0")?;
     let mut shader = None;
     unsafe { device.CreateVertexShader(&code, None, Some(&mut shader))? };
     shader.ok_or_else(windows::core::Error::from_win32)
 }
 
 pub fn create_pixel_shader(device: &ID3D11Device) -> windows::core::Result<ID3D11PixelShader> {
-    let code = shaders::compile(b"PSMain\0", b"ps_5_0\0")?;
+    let code = shaders::compile(Source::Photorealism, b"PSMain\0", b"ps_5_0\0")?;
     let mut shader = None;
     unsafe { device.CreatePixelShader(&code, None, Some(&mut shader))? };
     shader.ok_or_else(windows::core::Error::from_win32)

@@ -18,6 +18,7 @@ pub struct PipelineState {
     render_target: [Option<ID3D11RenderTargetView>; 1],
     depth_target: Option<ID3D11DepthStencilView>,
     shader_resource: [Option<ID3D11ShaderResourceView>; 1],
+    vertex_resource: [Option<ID3D11ShaderResourceView>; 1],
     sampler: [Option<ID3D11SamplerState>; 1],
     constant_buffer: [Option<ID3D11Buffer>; 1],
     viewports: Vec<D3D11_VIEWPORT>,
@@ -42,6 +43,7 @@ impl PipelineState {
             render_target: [None],
             depth_target: None,
             shader_resource: [None],
+            vertex_resource: [None],
             sampler: [None],
             constant_buffer: [None],
             viewports: Vec::new(),
@@ -76,6 +78,7 @@ impl PipelineState {
             );
             self.rasterizer_state = context.RSGetState().ok();
             context.PSGetShaderResources(0, Some(&mut self.shader_resource));
+            context.VSGetShaderResources(0, Some(&mut self.vertex_resource));
             context.PSGetSamplers(0, Some(&mut self.sampler));
             context.PSGetConstantBuffers(0, Some(&mut self.constant_buffer));
         }
@@ -110,6 +113,7 @@ impl PipelineState {
             context.OMSetDepthStencilState(self.depth_state.as_ref(), self.stencil_reference);
             context.RSSetState(self.rasterizer_state.as_ref());
             context.PSSetShaderResources(0, Some(&self.shader_resource));
+            context.VSSetShaderResources(0, Some(&self.vertex_resource));
             context.PSSetSamplers(0, Some(&self.sampler));
             context.PSSetConstantBuffers(0, Some(&self.constant_buffer));
             context.RSSetViewports(Some(&self.viewports));

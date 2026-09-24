@@ -12,6 +12,14 @@ impl Range {
     pub fn clamp(self, value: f32) -> f32 {
         value.clamp(self.minimum, self.maximum)
     }
+
+    pub fn fraction_of(self, value: f32) -> f32 {
+        let span = self.maximum - self.minimum;
+        if span <= 0.0 {
+            return 0.0;
+        }
+        ((value - self.minimum) / span).clamp(0.0, 1.0)
+    }
 }
 
 pub const EXPOSURE: Range = Range::new(-4.0, 4.0);
@@ -35,6 +43,14 @@ mod tests {
         assert_eq!(EXPOSURE.clamp(9.0), 4.0);
         assert_eq!(EXPOSURE.clamp(-9.0), -4.0);
         assert_eq!(EXPOSURE.clamp(0.5), 0.5);
+    }
+
+    #[test]
+    fn converts_a_value_into_a_fraction() {
+        assert_eq!(EXPOSURE.fraction_of(-4.0), 0.0);
+        assert_eq!(EXPOSURE.fraction_of(4.0), 1.0);
+        assert_eq!(EXPOSURE.fraction_of(0.0), 0.5);
+        assert_eq!(EXPOSURE.fraction_of(100.0), 1.0);
     }
 
     #[test]
