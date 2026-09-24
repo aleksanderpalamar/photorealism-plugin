@@ -1,5 +1,6 @@
 mod devices;
 mod gate;
+mod originals;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
@@ -43,6 +44,12 @@ fn push_motion(horizontal: i32, vertical: i32) {
 
 fn set_button(pressed: bool) {
     BUTTON.store(pressed, Ordering::Release);
+}
+
+pub fn release() {
+    BUTTON.store(false, Ordering::Release);
+    MOTION_X.store(0, Ordering::Release);
+    MOTION_Y.store(0, Ordering::Release);
 }
 
 pub fn install() -> windows::core::Result<()> {

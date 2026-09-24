@@ -24,6 +24,7 @@ struct Runtime {
     config: ConfigWatcher<FileConfigSource>,
     session: Session,
     shortcut: Shortcut,
+    capturing: bool,
     active_force_hdr: bool,
     error_reported: bool,
 }
@@ -39,6 +40,7 @@ impl Runtime {
             config,
             session: Session::default(),
             shortcut: Shortcut::default(),
+            capturing: false,
             active_force_hdr: settings.force_hdr,
             error_reported: false,
         }
@@ -46,36 +48,53 @@ impl Runtime {
 
     unsafe fn process(&mut self, swap_chain: &IDXGISwapChain) {
         let stored = self.refresh_settings();
-        if unsafe { self.ensure_renderer(swap_chain) }.is_err() {
-            self.report_error("Falha ao inicializar o pipeline de cor e tonemap.");
-            return;
-        }
         let viewport = self.viewport();
         self.poll_menu(viewport);
         let settings = self.session.settings(stored, viewport);
         if !settings.enabled && !self.session.is_visible() {
+            self.set_capture(false);
+            return;
+        }
+        if unsafe { self.ensure_renderer(swap_chain) }.is_err() {
+            self.report_error("Falha ao inicializar o pipeline de cor e tonemap.");
+            self.set_capture(false);
             return;
         }
         let session = self.session;
         let Some(renderer) = self.renderer.as_mut() else {
+            self.set_capture(false);
             return;
         };
         if unsafe { renderer.render(swap_chain, settings, &session) }.is_err() {
             self.report_error("Falha ao aplicar o passe de cor e tonemap.");
+            self.set_capture(false);
+            return;
         }
+        self.set_capture(self.session.is_visible() && self.renderable().is_some());
+    }
+
+    fn set_capture(&mut self, capturing: bool) {
+        if self.capturing == capturing {
+            return;
+        }
+        self.capturing = capturing;
+        if !capturing {
+            dinput::release();
+        }
+        dinput::set_capturing(capturing);
+    }
+
+    fn renderable(&self) -> Option<Viewport> {
+        self.renderer.as_ref().and_then(Renderer::viewport)
     }
 
     fn viewport(&self) -> Viewport {
-        self.renderer
-            .as_ref()
-            .and_then(Renderer::viewport)
-            .unwrap_or(DEFAULT_VIEWPORT)
+        self.renderable().unwrap_or(DEFAULT_VIEWPORT)
     }
 
     fn poll_menu(&mut self, viewport: Viewport) {
         if self.shortcut.triggered() {
             self.session.toggle(viewport);
-            dinput::set_capturing(self.session.is_visible());
             logging::write(&format!("Menu {}.", menu_state(self.session.is_visible())));
         }
         if !self.session.is_visible() {
@@ -127,11 +146,7 @@ impl Runtime {
 }
 
 fn menu_state(visible: bool) -> &'static str {
-    if visible {
-        "aberto"
-    } else {
-        "fechado"
-    }
+    if visible { "aberto" } else { "fechado" }
 }
 
 fn describe(settings: Settings) -> String {

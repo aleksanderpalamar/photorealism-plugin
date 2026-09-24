@@ -1,7 +1,7 @@
 use std::cell::Cell;
 use std::ffi::c_void;
 use std::sync::Once;
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::time::Duration;
 
 use windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT;
@@ -27,6 +27,8 @@ static START: Once = Once::new();
 static ORIGINAL_PRESENT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static ORIGINAL_RESIZE: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static ORIGINAL_PRESENT1: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+static GATE_INSTALLED: AtomicBool = AtomicBool::new(false);
+static GATE_REPORTED: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     static PROCESSING: Cell<bool> = const { Cell::new(false) };
@@ -52,10 +54,22 @@ fn install_when_ready() {
 }
 
 fn install_input_gate() {
-    let Err(error) = crate::dinput::install() else {
-        logging::write("Gate de entrada do DirectInput instalado.");
+    if GATE_INSTALLED.load(Ordering::Acquire) {
         return;
-    };
+    }
+    match crate::dinput::install() {
+        Ok(()) => {
+            GATE_INSTALLED.store(true, Ordering::Release);
+            logging::write("Gate de entrada do DirectInput instalado.");
+        }
+        Err(error) => report_gate_failure(error),
+    }
+}
+
+fn report_gate_failure(error: windows::core::Error) {
+    if GATE_REPORTED.swap(true, Ordering::AcqRel) {
+        return;
+    }
     logging::write(&format!(
         "Falha ao instalar o gate de entrada do DirectInput: {:#x}.",
         error.code().0,
@@ -79,18 +93,30 @@ fn install() -> windows::core::Result<()> {
     let probe = Probe::create()?;
     let raw = probe.swap_chain.as_raw();
     unsafe {
-        patch(
+        replace(
             entry(raw, 8),
             hooked_present as *mut c_void,
             &ORIGINAL_PRESENT,
         )?;
-        patch(
+        replace(
             entry(raw, 13),
             hooked_resize as *mut c_void,
             &ORIGINAL_RESIZE,
         )?;
     }
-    patch_present1(&probe.swap_chain)?;
+    install_input_gate();
+    patch_present1(&probe.swap_chain)
+}
+
+unsafe fn replace(
+    slot: *mut *mut c_void,
+    replacement: *mut c_void,
+    original: &AtomicPtr<c_void>,
+) -> windows::core::Result<()> {
+    let Some(previous) = (unsafe { patch(slot, replacement)? }) else {
+        return Ok(());
+    };
+    original.store(previous, Ordering::Release);
     Ok(())
 }
 
@@ -98,7 +124,7 @@ fn patch_present1(swap_chain: &IDXGISwapChain) -> windows::core::Result<()> {
     let extended: IDXGISwapChain1 = swap_chain.cast()?;
     let raw = extended.as_raw();
     unsafe {
-        patch(
+        replace(
             entry(raw, 22),
             hooked_present1 as *mut c_void,
             &ORIGINAL_PRESENT1,
