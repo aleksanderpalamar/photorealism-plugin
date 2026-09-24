@@ -1,14 +1,15 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock, TryLockError};
 use std::time::{Duration, Instant};
 
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
-use crate::config::{CONFIG_FILE_NAME, ConfigUpdate, ConfigWatcher, FileConfigSource};
+use crate::config::{CONFIG_FILE_NAME, ConfigFile, ConfigSink, ConfigUpdate, ConfigWatcher};
 use crate::dinput;
 use crate::graphics::Renderer;
 use crate::input::Shortcut;
 use crate::logging;
-use crate::menu::{Session, Viewport};
+use crate::menu::{self, Request, Session, Viewport};
 use crate::pipeline::{Demand, Pipeline};
 use crate::settings::Settings;
 
@@ -22,7 +23,8 @@ const DEFAULT_VIEWPORT: Viewport = Viewport {
 
 struct Runtime {
     pipeline: Pipeline<Renderer>,
-    config: ConfigWatcher<FileConfigSource>,
+    config: ConfigWatcher<ConfigFile>,
+    config_path: PathBuf,
     session: Session,
     shortcut: Shortcut,
     capturing: bool,
@@ -32,13 +34,15 @@ struct Runtime {
 
 impl Runtime {
     fn new() -> Self {
-        let source = FileConfigSource::new(logging::plugin_path(CONFIG_FILE_NAME));
+        let config_path = logging::plugin_path(CONFIG_FILE_NAME);
+        let source = ConfigFile::new(config_path.clone());
         let mut config = ConfigWatcher::new(source, RELOAD_INTERVAL);
         let settings = config.poll(Instant::now()).settings();
         logging::write(&format!("Configuracao inicial: {}", describe(settings)));
         Self {
             pipeline: Pipeline::Missing,
             config,
+            config_path,
             session: Session::default(),
             shortcut: Shortcut::default(),
             capturing: false,
@@ -49,9 +53,14 @@ impl Runtime {
 
     unsafe fn process(&mut self, swap_chain: &IDXGISwapChain) {
         let stored = self.refresh_settings();
+        self.session.settle(stored);
         let viewport = self.viewport();
         self.poll_menu(viewport);
-        let settings = self.session.settings(stored, viewport);
+        let update = self.session.update(stored, viewport);
+        if matches!(update.request, Request::Save) {
+            self.store(update.settings);
+        }
+        let settings = update.settings;
         if !settings.enabled && !self.session.is_visible() {
             self.set_capture(false);
             return;
@@ -83,6 +92,12 @@ impl Runtime {
 
     fn renderable(&self) -> Option<Viewport> {
         self.pipeline.get().and_then(Renderer::viewport)
+    }
+
+    fn store(&self, settings: Settings) {
+        let contents = menu::serialize(&settings);
+        let sink = ConfigFile::new(self.config_path.clone());
+        std::thread::spawn(move || report_store(sink.write(&contents)));
     }
 
     fn viewport(&self) -> Viewport {
@@ -144,6 +159,14 @@ impl Runtime {
         logging::write("Falha ao aplicar o passe de cor e tonemap.");
         self.render_error_reported = true;
     }
+}
+
+fn report_store(stored: bool) {
+    if stored {
+        logging::write("Configuracao gravada pelo menu.");
+        return;
+    }
+    logging::write("Falha ao gravar a configuracao pelo menu.");
 }
 
 fn menu_state(visible: bool) -> &'static str {

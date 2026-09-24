@@ -10,6 +10,8 @@ const LABEL_WIDTH: f32 = 132.0;
 const TRACK_WIDTH: f32 = 96.0;
 const TRACK_HEIGHT: f32 = 3.0;
 const VALUE_WIDTH: f32 = 60.0;
+const RESET_WIDTH: f32 = 10.0;
+const FOOTER_HEIGHT: f32 = 16.0;
 const GAP: f32 = 6.0;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,16 +21,18 @@ pub struct Layout {
     pub title: Rect,
     pub title_text: Rect,
     pub rows: Vec<Row>,
+    pub save: Rect,
+    pub discard: Rect,
 }
 
 impl Layout {
     pub fn build(origin: Point, scale: f32) -> Self {
-        let content = LABEL_WIDTH + GAP + TRACK_WIDTH + GAP + VALUE_WIDTH;
+        let content = LABEL_WIDTH + GAP + TRACK_WIDTH + GAP + VALUE_WIDTH + GAP + RESET_WIDTH;
         let panel = Rect {
             x: origin.x,
             y: origin.y,
             width: (PADDING * 2.0 + content) * scale,
-            height: (TITLE_HEIGHT + ROW_HEIGHT * Field::ALL.len() as f32 + PADDING) * scale,
+            height: (TITLE_HEIGHT + ROW_HEIGHT * Field::ALL.len() as f32 + FOOTER_HEIGHT) * scale,
         };
         let title = Rect {
             x: panel.x,
@@ -36,14 +40,38 @@ impl Layout {
             width: panel.width,
             height: TITLE_HEIGHT * scale,
         };
+        let rows = rows(panel, title.bottom(), scale);
+        let (save, discard) = footer(panel, scale);
         Self {
             scale,
             panel,
             title,
             title_text: inset(title, PADDING * scale).centered_row(CELL_HEIGHT as f32 * scale),
-            rows: rows(panel, title.bottom(), scale),
+            rows,
+            save,
+            discard,
         }
     }
+}
+
+fn footer(panel: Rect, scale: f32) -> (Rect, Rect) {
+    let height = (FOOTER_HEIGHT - PADDING) * scale;
+    let available = panel.width - PADDING * 3.0 * scale;
+    let width = available / 2.0;
+    let top = panel.bottom() - height - PADDING * scale / 2.0;
+    let save = Rect {
+        x: panel.x + PADDING * scale,
+        y: top,
+        width,
+        height,
+    };
+    let discard = Rect {
+        x: save.right() + PADDING * scale,
+        y: top,
+        width,
+        height,
+    };
+    (save, discard)
 }
 
 fn rows(panel: Rect, top: f32, scale: f32) -> Vec<Row> {
@@ -77,15 +105,22 @@ fn row(field: Field, bounds: Rect, scale: f32) -> Row {
         height: bounds.height,
     }
     .centered_row(TRACK_HEIGHT * scale);
+    let value = Rect {
+        x: track.right() + GAP * scale,
+        y: bounds.y,
+        width: VALUE_WIDTH * scale,
+        height: bounds.height,
+    };
     Row {
         field,
         bounds,
         label: label.centered_row(CELL_HEIGHT as f32 * scale),
         track,
-        value: Rect {
-            x: track.right() + GAP * scale,
+        value: value.centered_row(CELL_HEIGHT as f32 * scale),
+        reset: Rect {
+            x: value.right() + GAP * scale,
             y: bounds.y,
-            width: VALUE_WIDTH * scale,
+            width: RESET_WIDTH * scale,
             height: bounds.height,
         }
         .centered_row(CELL_HEIGHT as f32 * scale),
@@ -143,7 +178,7 @@ mod tests {
             assert_eq!(pair[0].bounds.bottom(), pair[1].bounds.y);
         }
         let last = layout.rows.last().expect("linhas");
-        assert!(last.bounds.bottom() <= layout.panel.bottom());
+        assert!(last.bounds.bottom() <= layout.save.y);
         assert!(layout.rows[0].bounds.y >= layout.title.bottom());
     }
 
@@ -155,7 +190,8 @@ mod tests {
             assert!(row.label.x >= layout.panel.x);
             assert!(row.label.right() <= row.track.x);
             assert!(row.track.right() <= row.value.x);
-            assert!(row.value.right() <= layout.panel.right());
+            assert!(row.value.right() <= row.reset.x);
+            assert!(row.reset.right() <= layout.panel.right());
         }
     }
 
@@ -178,5 +214,31 @@ mod tests {
 
         assert_eq!(box_rect.x, row.track.x);
         assert!(box_rect.height <= row.bounds.height);
+    }
+
+    #[test]
+    fn the_footer_keeps_both_buttons_inside_the_panel() {
+        let layout = layout(2.0);
+
+        assert!(layout.save.x >= layout.panel.x);
+        assert!(layout.save.right() <= layout.discard.x);
+        assert!(layout.discard.right() <= layout.panel.right());
+        assert!(layout.save.bottom() <= layout.panel.bottom());
+    }
+
+    #[test]
+    fn the_footer_buttons_share_the_same_width() {
+        let layout = layout(2.0);
+
+        assert_eq!(layout.save.width, layout.discard.width);
+        assert!(layout.save.width > 0.0);
+    }
+
+    #[test]
+    fn the_footer_sits_below_every_row() {
+        let layout = layout(2.0);
+        let last = layout.rows.last().expect("linhas");
+
+        assert!(layout.save.y >= last.bounds.bottom());
     }
 }

@@ -1,4 +1,4 @@
-use super::font::{self, CELL_WIDTH};
+use super::font::{self, CELL_HEIGHT, CELL_WIDTH};
 use super::geometry::Rect;
 use super::palette::Color;
 use super::primitive::Primitive;
@@ -27,4 +27,17 @@ pub fn push_text(
             color,
         });
     }
+}
+
+pub fn push_centered(into: &mut Vec<Primitive>, area: Rect, scale: f32, text: &str, color: Color) {
+    let width = font::text_width(text) as f32 * scale;
+    let row = area.centered_row(CELL_HEIGHT as f32 * scale);
+    push_text(
+        into,
+        row,
+        area.x + (area.width - width) / 2.0,
+        scale,
+        text,
+        color,
+    );
 }

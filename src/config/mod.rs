@@ -5,13 +5,17 @@ use std::time::{Duration, Instant};
 use crate::settings::Settings;
 
 #[cfg(windows)]
-pub use file::FileConfigSource;
+pub use file::ConfigFile;
 
 #[cfg(windows)]
 pub const CONFIG_FILE_NAME: &str = "photorealism-plugin.cfg";
 
 pub trait ConfigSource {
     fn read(&self) -> Option<String>;
+}
+
+pub trait ConfigSink {
+    fn write(&self, contents: &str) -> bool;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -4,7 +4,7 @@ use super::geometry::Rect;
 use super::palette;
 use super::primitive::Primitive;
 use super::row::Row;
-use super::text::push_text;
+use super::text::{push_centered, push_text};
 use crate::settings::Settings;
 
 pub fn push_row(
@@ -37,6 +37,11 @@ pub fn push_row(
         &text,
         palette::value(editable),
     );
+    into.push(Primitive::Rectangle {
+        rect: row.reset,
+        color: palette::TRACK,
+    });
+    push_centered(into, row.reset, scale, "R", palette::LABEL);
 }
 
 fn push_slider(

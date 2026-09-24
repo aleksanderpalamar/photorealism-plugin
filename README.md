@@ -102,7 +102,11 @@ Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas c
 
 Enquanto o painel está aberto, mouse e teclado deixam de chegar ao jogo: o plugin intercepta `GetDeviceState` e `GetDeviceData` do DirectInput, lê os deslocamentos do mouse para mover o próprio ponteiro e devolve o estado zerado. Sem isso, arrastar um controle também giraria a câmera. Volantes, pedais e outros dispositivos não são bloqueados. O log confirma a instalação e registra, no primeiro bloqueio, se o jogo lê a entrada por estado ou por buffer.
 
-Enquanto nada for arrastado, o painel continua seguindo o arquivo de configuração. A partir do primeiro ajuste pelo mouse, os valores do painel passam a valer sobre o arquivo — eles ainda não são gravados nele.
+Cada linha tem um botão `R` que devolve aquele parâmetro ao padrão. No rodapé, `Salvar no cfg` grava o estado atual no arquivo e `Descartar` volta ao que está gravado. O botão de salvar fica destacado enquanto houver alteração pendente.
+
+Enquanto nada for arrastado, o painel continua seguindo o arquivo de configuração — ele permanece útil como leitura ao vivo. A partir do primeiro ajuste, os valores do painel passam a valer sobre o arquivo até você salvar ou descartar.
+
+A gravação é feita em um arquivo temporário e renomeada por cima do original, para que uma falha no meio da escrita não deixe a configuração truncada. Depois de salvar, a releitura periódica encontra os mesmos valores e registra no log o que foi gravado.
 
 O painel é desenhado depois do passe de cor, e suas cores passam pela mesma codificação de saída — PQ em HDR10, escala por paper white em scRGB, sRGB em SDR. Por isso ele aparece com o mesmo brilho de referência em qualquer um dos três modos, em vez de estourar em HDR.
 
