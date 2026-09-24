@@ -42,6 +42,10 @@ Todo código produzido deve permanecer em conformidade com estas regras.
   Uma abstração deve existir porque resolve um problema real de design,
   e não apenas para antecipar uma possível necessidade futura.
 
+## Códigos de conduta
+
+Você pode ser proativo dentro do contexto da tarefa, mas nunca fora dele. Se, durante uma tarefa, você perceber que um trecho de código precisa de refatoração ou correção que não foi solicitada, não a execute. Apenas registre o que foi identificado no relatório final, para que eu decida se entra em uma próxima tarefa.
+
 ## Skills
 
 - Utilizar sempre a skill graphics-pipeline quando for mexer na pipeline grafica do plugin, como implementação de features novas e refatoração.

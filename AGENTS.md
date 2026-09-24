@@ -42,11 +42,15 @@ Todo código produzido deve permanecer em conformidade com estas regras.
   Uma abstração deve existir porque resolve um problema real de design,
   e não apenas para antecipar uma possível necessidade futura.
 
+## Códigos de conduta
+
+Você pode ser proativo dentro do contexto da tarefa, mas nunca fora dele. Se, durante uma tarefa, você perceber que um trecho de código precisa de refatoração ou correção que não foi solicitada, não a execute. Apenas registre o que foi identificado no relatório final, para que eu decida se entra em uma próxima tarefa.
+
 ## Skills
 
 - Utilizar sempre a skill graphics-pipeline quando for mexer na pipeline grafica do plugin, como implementação de features novas e refatoração.
 - Utilizar sempre a skill graphics-debugging quando surgir correção de crashes, artefatos visuais, cores erradas, ausência de efeito, falhas de inicialização e regressões de desempenho no photorealism-plugin.
-- Quando a tarefa envolver tanto implementação quanto investigação de problemas, use as duas skills `graphics-pipeline` e `graphics-debugging` de forma complementar.
+- Quando a(s) tarefa(s) envolverem tanto implementação quanto investigação de problemas, use as duas skills `graphics-pipeline` e `graphics-debugging` de forma complementar.
 
 ## Rust
 
@@ -56,11 +60,11 @@ Todo código produzido deve permanecer em conformidade com estas regras.
 
 - Preferir enums em vez de flags booleanas quando existirem múltiplos estados possíveis.
 Evitar operações que assumem sucesso sem verificar erros.
-Em std::optional, evitar usar value() quando a ausência for um caso normal sem antes tratar isso.
-Evitar exceções ou asserts para situações esperadas de execução.
+Em Option<T>, evitar unwrap() e expect() quando a ausência for um caso normal sem antes tratar isso.
+Evitar panic!, unreachable! e assert! para situações esperadas de execução.
 Preferir tratamento explícito do erro.
 
-- Utilizar std::optional<T> quando um valor pode não existir.
+- Utilizar Option<T> quando um valor pode não existir.
 
 - Não silenciar warnings sem uma justificativa clara.
 
