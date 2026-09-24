@@ -1,5 +1,6 @@
 mod constants;
 mod display;
+mod frame;
 mod overlay;
 mod resources;
 mod shaders;
@@ -7,20 +8,19 @@ mod state;
 
 use windows::Win32::Graphics::Direct3D::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 use windows::Win32::Graphics::Direct3D11::{
-    D3D11_TEXTURE2D_DESC, D3D11_VIEWPORT, ID3D11Buffer, ID3D11Device, ID3D11DeviceContext,
-    ID3D11PixelShader, ID3D11SamplerState, ID3D11Texture2D, ID3D11VertexShader,
+    D3D11_VIEWPORT, ID3D11Buffer, ID3D11Device, ID3D11DeviceContext, ID3D11PixelShader,
+    ID3D11SamplerState, ID3D11Texture2D, ID3D11VertexShader,
 };
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
-use crate::logging;
 use crate::menu::{Session, Viewport};
 use crate::settings::Settings;
 use constants::ShaderSettings;
 use display::DisplayLuminance;
 use overlay::Overlay;
 use resources::{
-    FrameResources, create_constant_buffer, create_frame_resources, create_pixel_shader,
-    create_sampler, create_vertex_shader, is_supported_format, texture_description,
+    FrameResources, create_constant_buffer, create_pixel_shader, create_sampler,
+    create_vertex_shader, is_supported_format, texture_description,
 };
 use state::PipelineState;
 
@@ -49,7 +49,7 @@ impl Renderer {
         let constants = create_constant_buffer(&device)?;
         let overlay = Overlay::new(&device)?;
         let display = display::query(swap_chain);
-        report_display(display.as_ref());
+        frame::report_display(display.as_ref());
         Ok(Self {
             swap_chain: windows::core::Interface::as_raw(swap_chain) as usize,
             device,
@@ -83,7 +83,7 @@ impl Renderer {
         {
             return Ok(());
         }
-        self.ensure_frame(&back_buffer, &description)?;
+        frame::ensure(&self.device, &mut self.frame, &back_buffer, &description)?;
         let state = unsafe { PipelineState::capture(&self.context) };
         if settings.enabled {
             unsafe { self.draw(&back_buffer, settings) };
@@ -130,29 +130,6 @@ impl Renderer {
             .hdr_peak_nits
             .resolve(display.map(|display| display.peak_nits));
         unsafe { overlay.draw(device, context, frame, settings, peak, &vertices) }
-    }
-
-    fn ensure_frame(
-        &mut self,
-        back_buffer: &ID3D11Texture2D,
-        description: &D3D11_TEXTURE2D_DESC,
-    ) -> windows::core::Result<()> {
-        let matches = self.frame.as_ref().is_some_and(|frame| {
-            frame.width == description.Width && frame.height == description.Height
-        });
-        if matches {
-            return Ok(());
-        }
-        let frame = create_frame_resources(&self.device, back_buffer, description)?;
-        logging::write(&format!(
-            "Backbuffer {}x{} formato={} modo={}.",
-            description.Width,
-            description.Height,
-            description.Format.0,
-            frame.output_mode.name(),
-        ));
-        self.frame = Some(frame);
-        Ok(())
     }
 
     unsafe fn draw(&self, back_buffer: &ID3D11Texture2D, settings: Settings) {
@@ -207,15 +184,4 @@ impl Renderer {
             self.context.RSSetViewports(Some(&[viewport]));
         }
     }
-}
-
-fn report_display(display: Option<&DisplayLuminance>) {
-    let Some(display) = display else {
-        logging::write("Display nao informou luminancia; hdr_peak_nits=auto usa 1000 nits.");
-        return;
-    };
-    logging::write(&format!(
-        "Display informou pico={:.0} nits e tela cheia={:.0} nits.",
-        display.peak_nits, display.full_frame_nits,
-    ));
 }
