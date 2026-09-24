@@ -5,6 +5,8 @@ mod config;
 #[cfg(any(windows, test))]
 mod menu;
 #[cfg(any(windows, test))]
+mod pipeline;
+#[cfg(any(windows, test))]
 mod settings;
 
 #[cfg(windows)]

@@ -9,7 +9,7 @@ const TITLE_HEIGHT: f32 = 16.0;
 const LABEL_WIDTH: f32 = 132.0;
 const TRACK_WIDTH: f32 = 96.0;
 const TRACK_HEIGHT: f32 = 3.0;
-const VALUE_WIDTH: f32 = 42.0;
+const VALUE_WIDTH: f32 = 60.0;
 const GAP: f32 = 6.0;
 
 #[derive(Clone, Debug, PartialEq)]

@@ -56,7 +56,7 @@ impl Overlay {
             width: frame.width as f32,
             height: frame.height as f32,
         };
-        let vertices = menu::vertices(&settings, viewport, title);
+        let vertices = menu::vertices(&settings, peak_nits, viewport, title);
         if vertices.is_empty() {
             return Ok(());
         }

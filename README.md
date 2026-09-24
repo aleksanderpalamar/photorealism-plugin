@@ -98,11 +98,13 @@ O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo
 
 `CTRL+P` abre e fecha um painel no canto superior esquerdo com os parâmetros e seus valores atuais. Cada mudança de estado é registrada no log.
 
-Nesta versão o painel é apenas leitura: ele mostra o que está em vigor, e os valores continuam sendo alterados pelo arquivo de configuração, que é relido a cada segundo. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração.
+Nesta versão o painel é apenas leitura: ele mostra o que está em vigor, e os valores continuam sendo alterados pelo arquivo de configuração, que é relido a cada segundo. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
 
 O painel é desenhado depois do passe de cor, e suas cores passam pela mesma codificação de saída — PQ em HDR10, escala por paper white em scRGB, sRGB em SDR. Por isso ele aparece com o mesmo brilho de referência em qualquer um dos três modos, em vez de estourar em HDR.
 
 Se `enabled=false`, o passe de cor não roda mas o painel continua podendo ser aberto.
+
+Se a inicialização do pipeline falhar, o plugin registra a falha uma vez e não tenta de novo até uma troca de resolução ou de modo de tela, que é quando `ResizeBuffers` descarta o estado. Sem isso, cada quadro recompilaria os quatro shaders e gravaria o erro no log.
 
 ## Desenvolvimento
 

@@ -12,14 +12,22 @@ pub fn scale_for(height: f32) -> f32 {
     (height / REFERENCE_HEIGHT).floor().max(MINIMUM_SCALE)
 }
 
-pub fn vertices(settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
+pub fn vertices(
+    settings: &Settings,
+    resolved_peak: f32,
+    viewport: Viewport,
+    title: &str,
+) -> Vec<Vertex> {
     let scale = scale_for(viewport.height);
     let origin = Point {
         x: MARGIN * scale,
         y: MARGIN * scale,
     };
     let layout = Layout::build(origin, scale);
-    vertex::build(&draw_list::build(&layout, settings, title), viewport)
+    vertex::build(
+        &draw_list::build(&layout, settings, resolved_peak, title),
+        viewport,
+    )
 }
 
 #[cfg(test)]
@@ -47,7 +55,12 @@ mod tests {
 
     #[test]
     fn the_panel_produces_whole_triangles() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            1000.0,
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         assert!(!built.is_empty());
         assert_eq!(built.len() % VERTICES_PER_PRIMITIVE, 0);
@@ -55,7 +68,12 @@ mod tests {
 
     #[test]
     fn the_panel_stays_inside_clip_space() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            1000.0,
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         for vertex in &built {
             assert!(vertex.position_uv[0] >= -1.0 && vertex.position_uv[0] <= 1.0);
@@ -65,7 +83,12 @@ mod tests {
 
     #[test]
     fn the_panel_sits_in_the_upper_left_corner() {
-        let built = vertices(&Settings::default(), viewport(1920.0, 1080.0), "menu");
+        let built = vertices(
+            &Settings::default(),
+            1000.0,
+            viewport(1920.0, 1080.0),
+            "menu",
+        );
 
         assert!(built[0].position_uv[0] < -0.9);
         assert!(built[0].position_uv[1] > 0.9);
