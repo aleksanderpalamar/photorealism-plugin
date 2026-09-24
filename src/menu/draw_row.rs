@@ -7,7 +7,13 @@ use super::row::Row;
 use super::text::{push_centered, push_text};
 use crate::settings::Settings;
 
-pub fn push_row(into: &mut Vec<Primitive>, row: &Row, settings: &Settings, scale: f32) {
+pub fn push_row(
+    into: &mut Vec<Primitive>,
+    row: &Row,
+    settings: &Settings,
+    resolved_peak: f32,
+    scale: f32,
+) {
     let editable = row.field.is_editable(settings);
     push_text(
         into,
@@ -19,9 +25,9 @@ pub fn push_row(into: &mut Vec<Primitive>, row: &Row, settings: &Settings, scale
     );
     match row.field.control() {
         Control::Switch => push_switch(into, row, settings),
-        Control::Slider(_) => push_slider(into, row, settings, editable),
+        Control::Slider(_) => push_slider(into, row, settings, resolved_peak, editable),
     }
-    let text = row.field.text(settings);
+    let text = row.field.text(settings, resolved_peak);
     let width = font::text_width(&text) as f32 * scale;
     push_text(
         into,
@@ -38,8 +44,14 @@ pub fn push_row(into: &mut Vec<Primitive>, row: &Row, settings: &Settings, scale
     push_centered(into, row.reset, scale, "R", palette::LABEL);
 }
 
-fn push_slider(into: &mut Vec<Primitive>, row: &Row, settings: &Settings, editable: bool) {
-    let fraction = row.field.fraction(settings);
+fn push_slider(
+    into: &mut Vec<Primitive>,
+    row: &Row,
+    settings: &Settings,
+    resolved_peak: f32,
+    editable: bool,
+) {
+    let fraction = row.field.fraction(settings, resolved_peak);
     into.push(Primitive::Rectangle {
         rect: row.track,
         color: palette::TRACK,

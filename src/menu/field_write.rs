@@ -25,7 +25,7 @@ impl Field {
         match self {
             Self::Enabled => settings.enabled = defaults.enabled,
             Self::AutomaticPeak | Self::PeakNits => settings.hdr_peak_nits = defaults.hdr_peak_nits,
-            _ => self.assign(settings, self.value(&defaults)),
+            _ => self.assign(settings, self.value(&defaults, DEFAULT_FIXED_PEAK)),
         }
     }
 
@@ -63,6 +63,8 @@ mod tests {
     use super::Field;
     use crate::settings::{PeakNits, Settings};
 
+    const PEAK: f32 = 1000.0;
+
     #[test]
     fn a_fraction_written_to_a_slider_can_be_read_back() {
         let mut settings = Settings::default();
@@ -70,7 +72,7 @@ mod tests {
         Field::Saturation.set_fraction(&mut settings, 0.25);
 
         assert_eq!(settings.saturation, 0.5);
-        assert_eq!(Field::Saturation.fraction(&settings), 0.25);
+        assert_eq!(Field::Saturation.fraction(&settings, PEAK), 0.25);
     }
 
     #[test]

@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicPtr, Ordering};
 
 use windows::Win32::System::Memory::{
     PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS, VirtualProtect,
@@ -13,8 +12,7 @@ pub unsafe fn entry(object: *mut c_void, slot: usize) -> *mut *mut c_void {
 pub unsafe fn patch(
     entry: *mut *mut c_void,
     replacement: *mut c_void,
-    original: &AtomicPtr<c_void>,
-) -> windows::core::Result<()> {
+) -> windows::core::Result<Option<*mut c_void>> {
     let mut previous = PAGE_PROTECTION_FLAGS::default();
     unsafe {
         VirtualProtect(
@@ -26,11 +24,12 @@ pub unsafe fn patch(
     };
     let current = unsafe { *entry };
     if current == replacement {
-        return unsafe { restore_protection(entry, previous) };
+        unsafe { restore_protection(entry, previous)? };
+        return Ok(None);
     }
-    original.store(current, Ordering::Release);
     unsafe { entry.write(replacement) };
-    unsafe { restore_protection(entry, previous) }
+    unsafe { restore_protection(entry, previous)? };
+    Ok(Some(current))
 }
 
 unsafe fn restore_protection(

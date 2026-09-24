@@ -22,9 +22,8 @@ impl Session {
 
     pub fn toggle(&mut self, viewport: Viewport) {
         self.visibility = self.visibility.toggled();
-        if self.visibility.is_visible() {
-            self.pointer.center(viewport);
-        }
+        self.interaction = Interaction::default();
+        self.pointer.center(viewport);
     }
 
     pub fn move_pointer(&mut self, horizontal: f32, vertical: f32, viewport: Viewport) {
@@ -59,9 +58,16 @@ impl Session {
         self.draft.changes()
     }
 
-    pub fn vertices(&self, settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
+    pub fn vertices(
+        &self,
+        settings: &Settings,
+        resolved_peak: f32,
+        viewport: Viewport,
+        title: &str,
+    ) -> Vec<Vertex> {
         panel::vertices(
             settings,
+            resolved_peak,
             self.pointer.position(),
             self.changes(),
             viewport,
@@ -163,6 +169,33 @@ mod tests {
     }
 
     #[test]
+    fn closing_the_menu_cancels_an_active_drag() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        press_first_track(&mut session, 0.0);
+        assert_eq!(session.update(stored(), viewport()).settings.exposure, -4.0);
+
+        session.toggle(viewport());
+        session.toggle(viewport());
+        session.set_button(true);
+
+        assert_eq!(session.update(stored(), viewport()).settings.exposure, -4.0);
+    }
+
+    #[test]
+    fn reopening_starts_from_a_released_pointer() {
+        let mut session = Session::default();
+        session.toggle(viewport());
+        press_first_track(&mut session, 1.0);
+        session.update(stored(), viewport());
+
+        session.toggle(viewport());
+        session.toggle(viewport());
+
+        assert_eq!(session.update(stored(), viewport()).settings.exposure, 4.0);
+    }
+
+    #[test]
     fn a_closed_menu_keeps_what_was_edited() {
         let mut session = Session::default();
         session.toggle(viewport());
@@ -178,7 +211,11 @@ mod tests {
     fn the_panel_only_draws_while_it_is_open() {
         let session = Session::default();
 
-        assert!(!session.vertices(&stored(), viewport(), "menu").is_empty());
+        assert!(
+            !session
+                .vertices(&stored(), 1000.0, viewport(), "menu")
+                .is_empty()
+        );
     }
 
     fn press(session: &mut Session, x: f32, y: f32) {

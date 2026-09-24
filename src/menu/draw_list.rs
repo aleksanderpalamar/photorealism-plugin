@@ -12,6 +12,7 @@ const ARROW_ROWS: usize = 10;
 pub fn build(
     layout: &Layout,
     settings: &Settings,
+    resolved_peak: f32,
     title: &str,
     changes: Changes,
     pointer: Option<Point>,
@@ -35,7 +36,7 @@ pub fn build(
         palette::TITLE_TEXT,
     );
     for row in &layout.rows {
-        push_row(&mut primitives, row, settings, layout.scale);
+        push_row(&mut primitives, row, settings, resolved_peak, layout.scale);
     }
     push_footer(&mut primitives, layout, changes);
     if let Some(position) = pointer {
@@ -95,6 +96,8 @@ mod tests {
     use crate::menu::geometry::{Point, Rect};
     use crate::menu::layout::Layout;
     use crate::menu::palette;
+
+    const PEAK: f32 = 1000.0;
     use crate::settings::{PeakNits, Settings};
 
     fn layout() -> Layout {
@@ -117,7 +120,14 @@ mod tests {
     #[test]
     fn the_panel_and_the_title_bar_come_first() {
         let layout = layout();
-        let primitives = build(&layout, &Settings::default(), "menu", Changes::None, None);
+        let primitives = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "menu",
+            Changes::None,
+            None,
+        );
 
         assert_eq!(
             primitives[0],
@@ -135,6 +145,7 @@ mod tests {
         let primitives = build(
             &layout,
             &Settings::default(),
+            PEAK,
             "photorealism-plugin",
             Changes::None,
             None,
@@ -152,8 +163,22 @@ mod tests {
     #[test]
     fn a_longer_title_produces_more_glyphs() {
         let layout = layout();
-        let short = build(&layout, &Settings::default(), "a", Changes::None, None);
-        let long = build(&layout, &Settings::default(), "abcd", Changes::None, None);
+        let short = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "a",
+            Changes::None,
+            None,
+        );
+        let long = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "abcd",
+            Changes::None,
+            None,
+        );
 
         assert_eq!(glyph_count(&long) - glyph_count(&short), 3);
     }
@@ -161,8 +186,22 @@ mod tests {
     #[test]
     fn characters_without_a_glyph_are_skipped() {
         let layout = layout();
-        let plain = build(&layout, &Settings::default(), "abc", Changes::None, None);
-        let accented = build(&layout, &Settings::default(), "abcá", Changes::None, None);
+        let plain = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "abc",
+            Changes::None,
+            None,
+        );
+        let accented = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "abcá",
+            Changes::None,
+            None,
+        );
 
         assert_eq!(glyph_count(&plain), glyph_count(&accented));
     }
@@ -170,13 +209,21 @@ mod tests {
     #[test]
     fn a_locked_row_is_painted_with_the_locked_color() {
         let layout = layout();
-        let automatic = build(&layout, &Settings::default(), "menu", Changes::None, None);
+        let automatic = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "menu",
+            Changes::None,
+            None,
+        );
         let fixed = build(
             &layout,
             &Settings {
                 hdr_peak_nits: PeakNits::Fixed(1200.0),
                 ..Settings::default()
             },
+            PEAK,
             "menu",
             Changes::None,
             None,
@@ -199,13 +246,21 @@ mod tests {
     #[test]
     fn turning_a_switch_off_removes_its_inner_mark() {
         let layout = layout();
-        let on = build(&layout, &Settings::default(), "menu", Changes::None, None);
+        let on = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "menu",
+            Changes::None,
+            None,
+        );
         let off = build(
             &layout,
             &Settings {
                 enabled: false,
                 ..Settings::default()
             },
+            PEAK,
             "menu",
             Changes::None,
             None,
@@ -217,10 +272,18 @@ mod tests {
     #[test]
     fn the_pointer_is_drawn_only_when_it_is_given() {
         let layout = layout();
-        let without = build(&layout, &Settings::default(), "menu", Changes::None, None);
+        let without = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "menu",
+            Changes::None,
+            None,
+        );
         let with = build(
             &layout,
             &Settings::default(),
+            PEAK,
             "menu",
             Changes::None,
             Some(Point { x: 900.0, y: 500.0 }),
@@ -239,6 +302,7 @@ mod tests {
         let primitives = build(
             &layout,
             &Settings::default(),
+            PEAK,
             "menu",
             Changes::None,
             Some(far),
