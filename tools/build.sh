@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 readonly TARGET="x86_64-pc-windows-gnu"
 readonly PACKAGE_PREFIX="photorealism-plugin"
-readonly PACKAGE_SUFFIX="ets2-hdr"
+readonly LEGACY_SUFFIX="ets2-hdr"
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 backup_dir=""
@@ -31,8 +31,8 @@ manifest_version() {
 
 packaged_versions() {
     [[ -d dist ]] || return 0
-    find dist -maxdepth 1 -name "${PACKAGE_PREFIX}-*-${PACKAGE_SUFFIX}*" -printf '%f\n' |
-        sed -e "s/^${PACKAGE_PREFIX}-//" -e "s/-${PACKAGE_SUFFIX}\(\.zip\)\?$//"
+    find dist -maxdepth 1 -name "${PACKAGE_PREFIX}-*" -printf '%f\n' |
+        sed -e "s/^${PACKAGE_PREFIX}-//" -e "s/\.zip$//" -e "s/-${LEGACY_SUFFIX}$//"
 }
 
 tagged_versions() {
@@ -57,7 +57,7 @@ next_version() {
 }
 
 package_name() {
-    echo "${PACKAGE_PREFIX}-${1}-${PACKAGE_SUFFIX}"
+    echo "${PACKAGE_PREFIX}-${1}"
 }
 
 assert_package_is_new() {
