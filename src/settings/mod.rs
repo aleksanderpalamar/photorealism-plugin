@@ -1,6 +1,8 @@
 mod peak_nits;
+pub mod range;
 
 pub use peak_nits::PeakNits;
+pub use range::Range;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
@@ -50,16 +52,20 @@ impl Settings {
         match key {
             "enabled" => self.enabled = parse_bool(value).unwrap_or(self.enabled),
             "force_hdr" => self.force_hdr = parse_bool(value).unwrap_or(self.force_hdr),
-            "exposure" => self.exposure = parse_f32(value, -4.0, 4.0, self.exposure),
-            "contrast" => self.contrast = parse_f32(value, 0.25, 2.0, self.contrast),
-            "saturation" => self.saturation = parse_f32(value, 0.0, 2.0, self.saturation),
-            "temperature" => self.temperature = parse_f32(value, 2000.0, 12000.0, self.temperature),
-            "tint" => self.tint = parse_f32(value, -1.0, 1.0, self.tint),
+            "exposure" => self.exposure = parse_f32(value, range::EXPOSURE, self.exposure),
+            "contrast" => self.contrast = parse_f32(value, range::CONTRAST, self.contrast),
+            "saturation" => self.saturation = parse_f32(value, range::SATURATION, self.saturation),
+            "temperature" => {
+                self.temperature = parse_f32(value, range::TEMPERATURE, self.temperature)
+            }
+            "tint" => self.tint = parse_f32(value, range::TINT, self.tint),
             "highlight_rolloff" => {
-                self.highlight_rolloff = parse_f32(value, 0.0, 1.0, self.highlight_rolloff)
+                self.highlight_rolloff =
+                    parse_f32(value, range::HIGHLIGHT_ROLLOFF, self.highlight_rolloff)
             }
             "hdr_paper_white_nits" => {
-                self.hdr_paper_white_nits = parse_f32(value, 80.0, 500.0, self.hdr_paper_white_nits)
+                self.hdr_paper_white_nits =
+                    parse_f32(value, range::PAPER_WHITE_NITS, self.hdr_paper_white_nits)
             }
             "hdr_peak_nits" => self.hdr_peak_nits = PeakNits::parse(value, self.hdr_peak_nits),
             _ => {}
@@ -81,11 +87,11 @@ fn parse_bool(value: &str) -> Option<bool> {
     }
 }
 
-fn parse_f32(value: &str, minimum: f32, maximum: f32, fallback: f32) -> f32 {
+fn parse_f32(value: &str, range: Range, fallback: f32) -> f32 {
     let Ok(parsed) = value.parse::<f32>() else {
         return fallback;
     };
-    parsed.clamp(minimum, maximum)
+    range.clamp(parsed)
 }
 
 #[cfg(test)]
