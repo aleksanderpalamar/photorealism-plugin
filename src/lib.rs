@@ -10,6 +10,8 @@ mod pipeline;
 mod settings;
 
 #[cfg(windows)]
+mod dinput;
+#[cfg(windows)]
 mod graphics;
 #[cfg(windows)]
 mod hooks;
@@ -23,3 +25,5 @@ mod probe;
 mod proxy;
 #[cfg(windows)]
 mod runtime;
+#[cfg(windows)]
+mod vtable;

@@ -12,27 +12,31 @@ pub fn scale_for(height: f32) -> f32 {
     (height / REFERENCE_HEIGHT).floor().max(MINIMUM_SCALE)
 }
 
-pub fn vertices(
-    settings: &Settings,
-    resolved_peak: f32,
-    viewport: Viewport,
-    title: &str,
-) -> Vec<Vertex> {
+pub fn layout_for(viewport: Viewport) -> Layout {
     let scale = scale_for(viewport.height);
     let origin = Point {
         x: MARGIN * scale,
         y: MARGIN * scale,
     };
-    let layout = Layout::build(origin, scale);
-    vertex::build(
-        &draw_list::build(&layout, settings, resolved_peak, title),
-        viewport,
-    )
+    Layout::build(origin, scale)
+}
+
+pub fn vertices(
+    settings: &Settings,
+    resolved_peak: f32,
+    pointer: Point,
+    viewport: Viewport,
+    title: &str,
+) -> Vec<Vertex> {
+    let layout = layout_for(viewport);
+    let primitives = draw_list::build(&layout, settings, resolved_peak, title, Some(pointer));
+    vertex::build(&primitives, viewport)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{scale_for, vertices};
+    use crate::menu::geometry::Point;
     use crate::menu::vertex::{VERTICES_PER_PRIMITIVE, Viewport};
     use crate::settings::Settings;
 
@@ -58,6 +62,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             1000.0,
+            Point { x: 10.0, y: 10.0 },
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -71,6 +76,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             1000.0,
+            Point { x: 10.0, y: 10.0 },
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -86,6 +92,7 @@ mod tests {
         let built = vertices(
             &Settings::default(),
             1000.0,
+            Point { x: 10.0, y: 10.0 },
             viewport(1920.0, 1080.0),
             "menu",
         );

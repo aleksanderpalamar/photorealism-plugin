@@ -1,15 +1,19 @@
 use super::draw_row::push_row;
+use super::geometry::{Point, Rect};
 use super::layout::Layout;
-use super::palette;
+use super::palette::{self, Color};
 use super::primitive::Primitive;
 use super::text::push_text;
 use crate::settings::Settings;
+
+const ARROW_ROWS: usize = 10;
 
 pub fn build(
     layout: &Layout,
     settings: &Settings,
     resolved_peak: f32,
     title: &str,
+    pointer: Option<Point>,
 ) -> Vec<Primitive> {
     let mut primitives = vec![
         Primitive::Rectangle {
@@ -32,7 +36,29 @@ pub fn build(
     for row in &layout.rows {
         push_row(&mut primitives, row, settings, resolved_peak, layout.scale);
     }
+    if let Some(position) = pointer {
+        push_pointer(&mut primitives, position, layout.scale);
+    }
     primitives
+}
+
+fn push_pointer(into: &mut Vec<Primitive>, position: Point, scale: f32) {
+    push_arrow(into, position, scale, palette::POINTER_OUTLINE, scale / 2.0);
+    push_arrow(into, position, scale, palette::POINTER, 0.0);
+}
+
+fn push_arrow(into: &mut Vec<Primitive>, position: Point, scale: f32, color: Color, grow: f32) {
+    for row in 0..ARROW_ROWS {
+        into.push(Primitive::Rectangle {
+            rect: Rect {
+                x: position.x - grow,
+                y: position.y + row as f32 * scale - grow,
+                width: (row + 1) as f32 * scale + grow * 2.0,
+                height: scale + grow * 2.0,
+            },
+            color,
+        });
+    }
 }
 
 #[cfg(test)]
@@ -65,7 +91,7 @@ mod tests {
     #[test]
     fn the_panel_and_the_title_bar_come_first() {
         let layout = layout();
-        let primitives = build(&layout, &Settings::default(), PEAK, "menu");
+        let primitives = build(&layout, &Settings::default(), PEAK, "menu", None);
 
         assert_eq!(
             primitives[0],
@@ -80,7 +106,7 @@ mod tests {
     #[test]
     fn nothing_is_drawn_outside_the_panel() {
         let layout = layout();
-        let primitives = build(&layout, &Settings::default(), PEAK, "photorealism-plugin");
+        let primitives = build(&layout, &Settings::default(), PEAK, "photorealism-plugin", None);
 
         for primitive in &primitives {
             let rect = bounds(primitive);
@@ -94,8 +120,8 @@ mod tests {
     #[test]
     fn a_longer_title_produces_more_glyphs() {
         let layout = layout();
-        let short = build(&layout, &Settings::default(), PEAK, "a");
-        let long = build(&layout, &Settings::default(), PEAK, "abcd");
+        let short = build(&layout, &Settings::default(), PEAK, "a", None);
+        let long = build(&layout, &Settings::default(), PEAK, "abcd", None);
 
         assert_eq!(glyph_count(&long) - glyph_count(&short), 3);
     }
@@ -103,8 +129,8 @@ mod tests {
     #[test]
     fn characters_without_a_glyph_are_skipped() {
         let layout = layout();
-        let plain = build(&layout, &Settings::default(), PEAK, "abc");
-        let accented = build(&layout, &Settings::default(), PEAK, "abcá");
+        let plain = build(&layout, &Settings::default(), PEAK, "abc", None);
+        let accented = build(&layout, &Settings::default(), PEAK, "abcá", None);
 
         assert_eq!(glyph_count(&plain), glyph_count(&accented));
     }
@@ -112,7 +138,7 @@ mod tests {
     #[test]
     fn a_locked_row_is_painted_with_the_locked_color() {
         let layout = layout();
-        let automatic = build(&layout, &Settings::default(), PEAK, "menu");
+        let automatic = build(&layout, &Settings::default(), PEAK, "menu", None);
         let fixed = build(
             &layout,
             &Settings {
@@ -121,6 +147,7 @@ mod tests {
             },
             PEAK,
             "menu",
+            None,
         );
 
         let locked = |primitives: &[Primitive]| {
@@ -140,7 +167,7 @@ mod tests {
     #[test]
     fn turning_a_switch_off_removes_its_inner_mark() {
         let layout = layout();
-        let on = build(&layout, &Settings::default(), PEAK, "menu");
+        let on = build(&layout, &Settings::default(), PEAK, "menu", None);
         let off = build(
             &layout,
             &Settings {
@@ -149,8 +176,35 @@ mod tests {
             },
             PEAK,
             "menu",
+            None,
         );
 
         assert_eq!(on.len() - off.len(), 1);
+    }
+
+    #[test]
+    fn the_pointer_is_drawn_only_when_it_is_given() {
+        let layout = layout();
+        let without = build(&layout, &Settings::default(), PEAK, "menu", None);
+        let with = build(
+            &layout,
+            &Settings::default(),
+            PEAK,
+            "menu",
+            Some(Point { x: 900.0, y: 500.0 }),
+        );
+
+        assert!(with.len() > without.len());
+    }
+
+    #[test]
+    fn the_pointer_may_sit_outside_the_panel() {
+        let layout = layout();
+        let far = Point { x: 1500.0, y: 900.0 };
+        let primitives = build(&layout, &Settings::default(), PEAK, "menu", Some(far));
+        let last = bounds(primitives.last().expect("primitivas"));
+
+        assert!(last.x >= far.x);
+        assert!(last.y >= far.y);
     }
 }

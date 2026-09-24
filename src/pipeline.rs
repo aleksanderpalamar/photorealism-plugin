@@ -33,6 +33,13 @@ impl<R> Pipeline<R> {
         };
     }
 
+    pub fn get(&self) -> Option<&R> {
+        match self {
+            Self::Ready(resource) => Some(resource),
+            Self::Missing | Self::Failed => None,
+        }
+    }
+
     pub fn ready(&mut self) -> Option<&mut R> {
         match self {
             Self::Ready(resource) => Some(resource),

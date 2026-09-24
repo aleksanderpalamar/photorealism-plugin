@@ -56,6 +56,13 @@ fn a_ready_pipeline_hands_out_its_resource() {
     let mut pipeline = ready();
 
     assert_eq!(pipeline.ready().copied(), Some(RESOURCE));
+    assert_eq!(ready().get().copied(), Some(RESOURCE));
+}
+
+#[test]
+fn only_a_ready_pipeline_is_readable_without_borrowing_it() {
+    assert!(failed().get().is_none());
+    assert!(Pipeline::<u32>::Missing.get().is_none());
 }
 
 #[test]

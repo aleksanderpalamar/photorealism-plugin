@@ -4,22 +4,28 @@ use std::time::{Duration, Instant};
 use windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 
 use crate::config::{CONFIG_FILE_NAME, ConfigUpdate, ConfigWatcher, FileConfigSource};
+use crate::dinput;
 use crate::graphics::Renderer;
 use crate::input::Shortcut;
 use crate::logging;
-use crate::menu::Visibility;
+use crate::menu::{Session, Viewport};
 use crate::pipeline::{Demand, Pipeline};
 use crate::settings::Settings;
 
 static RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
 
 const RELOAD_INTERVAL: Duration = Duration::from_secs(1);
+const DEFAULT_VIEWPORT: Viewport = Viewport {
+    width: 1920.0,
+    height: 1080.0,
+};
 
 struct Runtime {
     pipeline: Pipeline<Renderer>,
     config: ConfigWatcher<FileConfigSource>,
-    menu: Visibility,
+    session: Session,
     shortcut: Shortcut,
+    capturing: bool,
     active_force_hdr: bool,
     render_error_reported: bool,
 }
@@ -33,35 +39,67 @@ impl Runtime {
         Self {
             pipeline: Pipeline::Missing,
             config,
-            menu: Visibility::default(),
+            session: Session::default(),
             shortcut: Shortcut::default(),
+            capturing: false,
             active_force_hdr: settings.force_hdr,
             render_error_reported: false,
         }
     }
 
     unsafe fn process(&mut self, swap_chain: &IDXGISwapChain) {
-        self.poll_menu();
-        let settings = self.refresh_settings();
-        if !settings.enabled && !self.menu.is_visible() {
+        let stored = self.refresh_settings();
+        let viewport = self.viewport();
+        self.poll_menu(viewport);
+        let settings = self.session.settings(stored, viewport);
+        if !settings.enabled && !self.session.is_visible() {
+            self.set_capture(false);
             return;
         }
         unsafe { self.prepare(swap_chain) };
-        let visibility = self.menu;
+        let session = self.session;
         let Some(renderer) = self.pipeline.ready() else {
+            self.set_capture(false);
             return;
         };
-        if unsafe { renderer.render(swap_chain, settings, visibility) }.is_err() {
+        if unsafe { renderer.render(swap_chain, settings, &session) }.is_err() {
             self.report_render_error();
-        }
-    }
-
-    fn poll_menu(&mut self) {
-        if !self.shortcut.triggered() {
+            self.set_capture(false);
             return;
         }
-        self.menu = self.menu.toggled();
-        logging::write(&format!("Menu {}.", menu_state(self.menu)));
+        self.set_capture(self.session.is_visible() && self.renderable().is_some());
+    }
+
+    fn set_capture(&mut self, capturing: bool) {
+        if self.capturing == capturing {
+            return;
+        }
+        self.capturing = capturing;
+        if !capturing {
+            dinput::release();
+        }
+        dinput::set_capturing(capturing);
+    }
+
+    fn renderable(&self) -> Option<Viewport> {
+        self.pipeline.get().and_then(Renderer::viewport)
+    }
+
+    fn viewport(&self) -> Viewport {
+        self.renderable().unwrap_or(DEFAULT_VIEWPORT)
+    }
+
+    fn poll_menu(&mut self, viewport: Viewport) {
+        if self.shortcut.triggered() {
+            self.session.toggle(viewport);
+            logging::write(&format!("Menu {}.", menu_state(self.session.is_visible())));
+        }
+        if !self.session.is_visible() {
+            return;
+        }
+        let (horizontal, vertical) = dinput::take_motion();
+        self.session.move_pointer(horizontal, vertical, viewport);
+        self.session.set_button(dinput::button());
     }
 
     fn refresh_settings(&mut self) -> Settings {
@@ -108,12 +146,8 @@ impl Runtime {
     }
 }
 
-fn menu_state(visibility: Visibility) -> &'static str {
-    if visibility.is_visible() {
-        "aberto"
-    } else {
-        "fechado"
-    }
+fn menu_state(visible: bool) -> &'static str {
+    if visible { "aberto" } else { "fechado" }
 }
 
 fn describe(settings: Settings) -> String {
