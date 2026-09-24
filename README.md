@@ -51,7 +51,9 @@ Cada execução publica uma versão nova. O script parte da maior versão que en
 
 A versão escolhida é gravada no `Cargo.toml` antes dos testes, do clippy e da compilação. Se qualquer uma dessas etapas falhar, `Cargo.toml` e `Cargo.lock` voltam ao estado anterior e nada é publicado em `dist/`. O commit da nova versão fica por sua conta; o script sugere a linha ao terminar.
 
-O pacote é criado em uma pasta e um arquivo ZIP versionados, como `dist/photorealism-plugin-0.2.2-ets2-hdr/` e `dist/photorealism-plugin-0.2.2-ets2-hdr.zip`. Versões anteriores não são removidas nem sobrescritas.
+O pacote é criado em uma pasta e um arquivo ZIP versionados, como `dist/photorealism-plugin-0.2.5/` e `dist/photorealism-plugin-0.2.5.zip`. Versões anteriores não são removidas nem sobrescritas.
+
+Pacotes gerados até a 0.2.4 levavam o sufixo `-ets2-hdr` no nome. O cálculo da próxima versão continua reconhecendo esse formato antigo, para que a numeração não retroceda por causa deles.
 
 ## Instalação
 
