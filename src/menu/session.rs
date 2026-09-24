@@ -47,8 +47,20 @@ impl Session {
         self.draft.effective(stored)
     }
 
-    pub fn vertices(&self, settings: &Settings, viewport: Viewport, title: &str) -> Vec<Vertex> {
-        panel::vertices(settings, self.pointer.position(), viewport, title)
+    pub fn vertices(
+        &self,
+        settings: &Settings,
+        resolved_peak: f32,
+        viewport: Viewport,
+        title: &str,
+    ) -> Vec<Vertex> {
+        panel::vertices(
+            settings,
+            resolved_peak,
+            self.pointer.position(),
+            viewport,
+            title,
+        )
     }
 }
 
@@ -185,6 +197,6 @@ mod tests {
     fn the_panel_only_draws_while_it_is_open() {
         let session = Session::default();
 
-        assert!(!session.vertices(&stored(), viewport(), "menu").is_empty());
+        assert!(!session.vertices(&stored(), 1000.0, viewport(), "menu").is_empty());
     }
 }

@@ -98,7 +98,7 @@ O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo
 
 `CTRL+P` abre e fecha um painel no canto superior esquerdo com os parâmetros e seus valores atuais. Cada mudança de estado é registrada no log.
 
-Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração.
+Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
 
 Enquanto o painel está aberto, mouse e teclado deixam de chegar ao jogo: o plugin intercepta `GetDeviceState` e `GetDeviceData` do DirectInput, lê os deslocamentos do mouse para mover o próprio ponteiro e devolve o estado zerado. Sem isso, arrastar um controle também giraria a câmera. Volantes, pedais e outros dispositivos não são bloqueados. O log confirma a instalação e registra, no primeiro bloqueio, se o jogo lê a entrada por estado ou por buffer.
 
@@ -107,6 +107,8 @@ Enquanto nada for arrastado, o painel continua seguindo o arquivo de configuraç
 O painel é desenhado depois do passe de cor, e suas cores passam pela mesma codificação de saída — PQ em HDR10, escala por paper white em scRGB, sRGB em SDR. Por isso ele aparece com o mesmo brilho de referência em qualquer um dos três modos, em vez de estourar em HDR.
 
 Se `enabled=false`, o passe de cor não roda mas o painel continua podendo ser aberto.
+
+Se a inicialização do pipeline falhar, o plugin registra a falha uma vez e não tenta de novo até uma troca de resolução ou de modo de tela, que é quando `ResizeBuffers` descarta o estado. Sem isso, cada quadro recompilaria os quatro shaders e gravaria o erro no log.
 
 ## Desenvolvimento
 

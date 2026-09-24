@@ -111,7 +111,10 @@ impl Renderer {
         let Some(viewport) = self.viewport() else {
             return Ok(());
         };
-        let vertices = session.vertices(&settings, viewport, TITLE);
+        let peak = settings
+            .hdr_peak_nits
+            .resolve(self.display.map(|display| display.peak_nits));
+        let vertices = session.vertices(&settings, peak, viewport, TITLE);
         let Self {
             device,
             context,
