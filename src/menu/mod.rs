@@ -1,5 +1,7 @@
 mod action;
+mod choice;
 mod draft;
+mod draw_choice;
 mod draw_list;
 mod draw_row;
 mod field;

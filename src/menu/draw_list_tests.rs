@@ -34,6 +34,7 @@ fn the_panel_and_the_title_bar_come_first() {
         "menu",
         Changes::None,
         None,
+        None,
     );
 
     assert_eq!(
@@ -56,6 +57,7 @@ fn nothing_is_drawn_outside_the_panel() {
         "photorealism-plugin",
         Changes::None,
         None,
+        None,
     );
 
     for primitive in &primitives {
@@ -77,6 +79,7 @@ fn a_longer_title_produces_more_glyphs() {
         "a",
         Changes::None,
         None,
+        None,
     );
     let long = build(
         &layout,
@@ -84,6 +87,7 @@ fn a_longer_title_produces_more_glyphs() {
         PEAK,
         "abcd",
         Changes::None,
+        None,
         None,
     );
 
@@ -100,6 +104,7 @@ fn characters_without_a_glyph_are_skipped() {
         "abc",
         Changes::None,
         None,
+        None,
     );
     let accented = build(
         &layout,
@@ -107,6 +112,7 @@ fn characters_without_a_glyph_are_skipped() {
         PEAK,
         "abcá",
         Changes::None,
+        None,
         None,
     );
 
@@ -123,6 +129,7 @@ fn a_locked_row_is_painted_with_the_locked_color() {
         "menu",
         Changes::None,
         None,
+        None,
     );
     let fixed = build(
         &layout,
@@ -133,6 +140,7 @@ fn a_locked_row_is_painted_with_the_locked_color() {
         PEAK,
         "menu",
         Changes::None,
+        None,
         None,
     );
 
@@ -160,6 +168,7 @@ fn turning_a_switch_off_removes_its_inner_mark() {
         "menu",
         Changes::None,
         None,
+        None,
     );
     let off = build(
         &layout,
@@ -170,6 +179,7 @@ fn turning_a_switch_off_removes_its_inner_mark() {
         PEAK,
         "menu",
         Changes::None,
+        None,
         None,
     );
 
@@ -186,6 +196,7 @@ fn the_pointer_is_drawn_only_when_it_is_given() {
         "menu",
         Changes::None,
         None,
+        None,
     );
     let with = build(
         &layout,
@@ -193,6 +204,7 @@ fn the_pointer_is_drawn_only_when_it_is_given() {
         PEAK,
         "menu",
         Changes::None,
+        None,
         Some(Point { x: 900.0, y: 500.0 }),
     );
 
@@ -212,6 +224,7 @@ fn the_pointer_may_sit_outside_the_panel() {
         PEAK,
         "menu",
         Changes::None,
+        None,
         Some(far),
     );
     let last = bounds(primitives.last().expect("primitivas"));

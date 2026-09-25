@@ -117,7 +117,7 @@ O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo
 
 `CTRL+P` abre e fecha um painel no canto superior esquerdo com os parâmetros e seus valores atuais. Cada mudança de estado é registrada no log.
 
-Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. A linha `Perfil de luminancia` avança para o próximo perfil a cada clique, e a caixa acesa mostra qual está em vigor. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
+Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. A linha `Perfil de luminancia` é uma lista: clicar na caixa abre as opções sobre as linhas de baixo, clicar em uma delas escolhe e fecha, e clicar fora fecha sem mudar nada. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
 
 Enquanto o painel está aberto, mouse e teclado deixam de chegar ao jogo: o plugin intercepta `GetDeviceState` e `GetDeviceData` do DirectInput, lê os deslocamentos do mouse para mover o próprio ponteiro e devolve o estado zerado. Sem isso, arrastar um controle também giraria a câmera. Volantes, pedais e outros dispositivos não são bloqueados. O log confirma a instalação e registra, no primeiro bloqueio, se o jogo lê a entrada por estado ou por buffer.
 

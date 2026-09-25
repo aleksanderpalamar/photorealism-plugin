@@ -1,5 +1,6 @@
 use super::draft::Changes;
 use super::draw_list;
+use super::field::Field;
 use super::geometry::Point;
 use super::layout::Layout;
 use super::vertex::{self, Vertex, Viewport};
@@ -27,6 +28,7 @@ pub fn vertices(
     resolved_peak: f32,
     pointer: Point,
     changes: Changes,
+    open: Option<Field>,
     viewport: Viewport,
     title: &str,
 ) -> Vec<Vertex> {
@@ -37,6 +39,7 @@ pub fn vertices(
         resolved_peak,
         title,
         changes,
+        open,
         Some(pointer),
     );
     vertex::build(&primitives, viewport)
@@ -74,6 +77,7 @@ mod tests {
             1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
+            None,
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -89,6 +93,7 @@ mod tests {
             1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
+            None,
             viewport(1920.0, 1080.0),
             "menu",
         );
@@ -106,6 +111,7 @@ mod tests {
             1000.0,
             Point { x: 10.0, y: 10.0 },
             Changes::None,
+            None,
             viewport(1920.0, 1080.0),
             "menu",
         );

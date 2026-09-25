@@ -1,5 +1,5 @@
 use super::field::{Control, Field};
-use crate::settings::{PeakNits, Settings};
+use crate::settings::{LuminanceProfile, PeakNits, Settings};
 
 impl Field {
     pub fn is_editable(self, settings: &Settings) -> bool {
@@ -29,6 +29,15 @@ impl Field {
             Self::AutomaticPeak => matches!(settings.hdr_peak_nits, PeakNits::Auto),
             _ => false,
         }
+    }
+
+    pub fn choice_label(self, index: usize) -> &'static str {
+        let Self::LuminanceProfile = self else {
+            return "";
+        };
+        LuminanceProfile::ALL
+            .get(index)
+            .map_or("", |profile| profile.label())
     }
 
     pub fn choice(self, settings: &Settings) -> usize {

@@ -19,7 +19,7 @@ pub enum Field {
 pub enum Control {
     Slider(Range),
     Switch,
-    Cycle(usize),
+    Choice(usize),
 }
 
 impl Field {
@@ -56,7 +56,7 @@ impl Field {
     pub fn control(self) -> Control {
         match self {
             Self::Enabled | Self::AutomaticPeak => Control::Switch,
-            Self::LuminanceProfile => Control::Cycle(LuminanceProfile::COUNT),
+            Self::LuminanceProfile => Control::Choice(LuminanceProfile::COUNT),
             Self::Exposure => Control::Slider(range::EXPOSURE),
             Self::Contrast => Control::Slider(range::CONTRAST),
             Self::Saturation => Control::Slider(range::SATURATION),
@@ -109,19 +109,19 @@ mod tests {
     }
 
     #[test]
-    fn only_the_profile_cycles_through_states() {
+    fn only_the_profile_offers_a_list() {
         let cycles: Vec<Field> = Field::ALL
             .into_iter()
-            .filter(|field| matches!(field.control(), Control::Cycle(_)))
+            .filter(|field| matches!(field.control(), Control::Choice(_)))
             .collect();
 
         assert_eq!(cycles, vec![Field::LuminanceProfile]);
     }
 
     #[test]
-    fn a_cycle_declares_more_than_two_states() {
-        let Control::Cycle(states) = Field::LuminanceProfile.control() else {
-            panic!("o perfil precisa ser um ciclo");
+    fn a_list_declares_more_than_two_states() {
+        let Control::Choice(states) = Field::LuminanceProfile.control() else {
+            panic!("o perfil precisa oferecer uma lista");
         };
 
         assert!(states > 2);

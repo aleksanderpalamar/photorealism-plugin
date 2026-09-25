@@ -1,16 +1,17 @@
-use super::push_row;
+use super::{CARET_ROWS, push_row};
+use crate::menu::choice::Choice;
 use crate::menu::field::Field;
 use crate::menu::geometry::Point;
 use crate::menu::layout::Layout;
-use crate::menu::palette;
 use crate::menu::primitive::Primitive;
 use crate::menu::row::Row;
 use crate::settings::{LuminanceProfile, Settings};
 
 const PEAK: f32 = 1000.0;
+const SCALE: f32 = 2.0;
 
 fn profile_row() -> Row {
-    Layout::build(Point { x: 24.0, y: 24.0 }, 2.0)
+    Layout::build(Point { x: 24.0, y: 24.0 }, SCALE)
         .rows
         .iter()
         .find(|row| row.field == Field::LuminanceProfile)
@@ -24,67 +25,61 @@ fn drawn(profile: LuminanceProfile) -> Vec<Primitive> {
         ..Settings::default()
     };
     let mut primitives = Vec::new();
-    push_row(&mut primitives, &profile_row(), &settings, PEAK, 2.0);
+    push_row(&mut primitives, &profile_row(), &settings, PEAK, SCALE);
     primitives
 }
 
-fn boxes(primitives: &[Primitive]) -> Vec<f32> {
-    let size = profile_row().switch_box().width;
+fn glyphs(primitives: &[Primitive]) -> usize {
     primitives
         .iter()
-        .filter_map(|primitive| match primitive {
-            Primitive::Rectangle { rect, .. } if rect.width == size => Some(rect.x),
-            _ => None,
-        })
-        .collect()
-}
-
-fn filled(primitives: &[Primitive]) -> Vec<f32> {
-    primitives
-        .iter()
-        .filter_map(|primitive| match primitive {
-            Primitive::Rectangle { rect, color } if *color == palette::FILL => Some(rect.x),
-            _ => None,
-        })
-        .collect()
+        .filter(|primitive| matches!(primitive, Primitive::Glyph { .. }))
+        .count()
 }
 
 #[test]
-fn the_profile_row_draws_one_box_per_state() {
-    for profile in [
-        LuminanceProfile::Low,
-        LuminanceProfile::Neutral,
-        LuminanceProfile::High,
-    ] {
-        assert_eq!(boxes(&drawn(profile)).len(), LuminanceProfile::COUNT);
+fn the_closed_box_is_drawn_once() {
+    let closed = Choice::build(&profile_row(), LuminanceProfile::COUNT).closed;
+
+    let boxes = drawn(LuminanceProfile::Neutral)
+        .iter()
+        .filter(|primitive| match primitive {
+            Primitive::Rectangle { rect, .. } => *rect == closed,
+            Primitive::Glyph { .. } => false,
+        })
+        .count();
+
+    assert_eq!(boxes, 1);
+}
+
+#[test]
+fn the_caret_sits_inside_the_right_half_of_the_box() {
+    let closed = Choice::build(&profile_row(), LuminanceProfile::COUNT).closed;
+    let middle = closed.x + closed.width / 2.0;
+
+    let caret = drawn(LuminanceProfile::Neutral)
+        .iter()
+        .filter(|primitive| match primitive {
+            Primitive::Rectangle { rect, .. } => rect.x > middle && rect.right() <= closed.right(),
+            Primitive::Glyph { .. } => false,
+        })
+        .count();
+
+    assert_eq!(caret, CARET_ROWS);
+}
+
+#[test]
+fn the_box_shows_the_profile_in_force() {
+    for profile in LuminanceProfile::ALL {
+        let expected = Field::LuminanceProfile.label().len() + profile.label().len() + "R".len();
+
+        assert_eq!(glyphs(&drawn(profile)), expected, "{profile:?}");
     }
 }
 
 #[test]
-fn exactly_one_box_is_lit() {
-    for profile in [
-        LuminanceProfile::Low,
-        LuminanceProfile::Neutral,
-        LuminanceProfile::High,
-    ] {
-        assert_eq!(filled(&drawn(profile)).len(), 1);
-    }
-}
+fn the_row_does_not_repeat_the_value_in_its_own_column() {
+    let neutral = glyphs(&drawn(LuminanceProfile::Neutral));
+    let low = glyphs(&drawn(LuminanceProfile::Low));
 
-#[test]
-fn advancing_the_profile_moves_the_lit_box() {
-    let low = filled(&drawn(LuminanceProfile::Low));
-    let neutral = filled(&drawn(LuminanceProfile::Neutral));
-    let high = filled(&drawn(LuminanceProfile::High));
-
-    assert!(low[0] < neutral[0]);
-    assert!(neutral[0] < high[0]);
-}
-
-#[test]
-fn the_boxes_stay_in_the_same_places() {
-    let low = boxes(&drawn(LuminanceProfile::Low));
-    let high = boxes(&drawn(LuminanceProfile::High));
-
-    assert_eq!(low, high);
+    assert_eq!(neutral - low, "neutra".len() - "baixa".len());
 }

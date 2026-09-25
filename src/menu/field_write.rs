@@ -1,5 +1,5 @@
 use super::field::{Control, Field};
-use crate::settings::{PeakNits, Settings};
+use crate::settings::{LuminanceProfile, PeakNits, Settings};
 
 const DEFAULT_FIXED_PEAK: f32 = 1000.0;
 const UNIT_DECIMALS: f32 = 1000.0;
@@ -16,11 +16,18 @@ impl Field {
         match self {
             Self::Enabled => settings.enabled = !settings.enabled,
             Self::AutomaticPeak => settings.hdr_peak_nits = flipped_peak(settings),
-            Self::LuminanceProfile => {
-                settings.luminance_profile = settings.luminance_profile.next()
-            }
             _ => {}
         }
+    }
+
+    pub fn set_choice(self, settings: &mut Settings, index: usize) {
+        let Self::LuminanceProfile = self else {
+            return;
+        };
+        let Some(profile) = LuminanceProfile::ALL.get(index) else {
+            return;
+        };
+        settings.luminance_profile = *profile;
     }
 
     pub fn reset(self, settings: &mut Settings) {
@@ -130,28 +137,33 @@ mod tests {
     }
 
     #[test]
-    fn advancing_the_profile_walks_through_the_three_states() {
+    fn selecting_an_index_sets_that_profile() {
         let mut settings = Settings::default();
-        assert_eq!(settings.luminance_profile, LuminanceProfile::Neutral);
 
-        Field::LuminanceProfile.flip(&mut settings);
-        assert_eq!(settings.luminance_profile, LuminanceProfile::High);
+        for (index, profile) in LuminanceProfile::ALL.into_iter().enumerate() {
+            Field::LuminanceProfile.set_choice(&mut settings, index);
 
-        Field::LuminanceProfile.flip(&mut settings);
-        assert_eq!(settings.luminance_profile, LuminanceProfile::Low);
+            assert_eq!(settings.luminance_profile, profile);
+        }
+    }
 
-        Field::LuminanceProfile.flip(&mut settings);
+    #[test]
+    fn an_index_outside_the_list_is_ignored() {
+        let mut settings = Settings::default();
+
+        Field::LuminanceProfile.set_choice(&mut settings, LuminanceProfile::COUNT);
+
         assert_eq!(settings.luminance_profile, LuminanceProfile::Neutral);
     }
 
     #[test]
-    fn advancing_the_profile_leaves_the_exposure_alone() {
+    fn selecting_a_profile_leaves_the_exposure_alone() {
         let mut settings = Settings {
             exposure: 0.25,
             ..Settings::default()
         };
 
-        Field::LuminanceProfile.flip(&mut settings);
+        Field::LuminanceProfile.set_choice(&mut settings, 2);
 
         assert_eq!(settings.exposure, 0.25);
         assert_eq!(settings.effective_exposure(), 0.75);

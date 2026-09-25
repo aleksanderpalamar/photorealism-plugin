@@ -70,6 +70,7 @@ impl Session {
             resolved_peak,
             self.pointer.position(),
             self.changes(),
+            self.interaction.open(),
             viewport,
             title,
         )

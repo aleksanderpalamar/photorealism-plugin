@@ -16,6 +16,7 @@ pub enum LuminanceProfile {
 
 impl LuminanceProfile {
     pub const COUNT: usize = 3;
+    pub const ALL: [Self; Self::COUNT] = [Self::Low, Self::Neutral, Self::High];
 
     pub fn parse(value: &str, fallback: Self) -> Self {
         match value {
@@ -31,14 +32,6 @@ impl LuminanceProfile {
             Self::Low => LOW_OFFSET,
             Self::Neutral => NEUTRAL_OFFSET,
             Self::High => HIGH_OFFSET,
-        }
-    }
-
-    pub fn next(self) -> Self {
-        match self {
-            Self::Low => Self::Neutral,
-            Self::Neutral => Self::High,
-            Self::High => Self::Low,
         }
     }
 
@@ -73,11 +66,7 @@ impl fmt::Display for LuminanceProfile {
 mod tests {
     use super::LuminanceProfile;
 
-    const ALL: [LuminanceProfile; LuminanceProfile::COUNT] = [
-        LuminanceProfile::Low,
-        LuminanceProfile::Neutral,
-        LuminanceProfile::High,
-    ];
+    const ALL: [LuminanceProfile; LuminanceProfile::COUNT] = LuminanceProfile::ALL;
 
     #[test]
     fn each_keyword_selects_its_profile() {
@@ -119,36 +108,6 @@ mod tests {
     }
 
     #[test]
-    fn advancing_three_times_returns_to_the_start() {
-        for profile in ALL {
-            assert_eq!(profile.next().next().next(), profile);
-        }
-    }
-
-    #[test]
-    fn advancing_walks_through_every_profile() {
-        let mut seen = vec![LuminanceProfile::Low];
-        let mut profile = LuminanceProfile::Low;
-
-        for _ in 1..LuminanceProfile::COUNT {
-            profile = profile.next();
-            assert!(!seen.contains(&profile), "{profile:?}");
-            seen.push(profile);
-        }
-
-        assert_eq!(seen.len(), LuminanceProfile::COUNT);
-    }
-
-    #[test]
-    fn advancing_moves_the_index_by_one() {
-        for profile in ALL {
-            let expected = (profile.index() + 1) % LuminanceProfile::COUNT;
-
-            assert_eq!(profile.next().index(), expected);
-        }
-    }
-
-    #[test]
     fn every_index_stays_inside_the_count() {
         for profile in ALL {
             assert!(profile.index() < LuminanceProfile::COUNT);
@@ -159,7 +118,7 @@ mod tests {
     fn the_written_keyword_can_be_read_back() {
         for profile in ALL {
             assert_eq!(
-                LuminanceProfile::parse(&profile.to_string(), profile.next()),
+                LuminanceProfile::parse(&profile.to_string(), LuminanceProfile::High),
                 profile
             );
         }
@@ -167,9 +126,11 @@ mod tests {
 
     #[test]
     fn every_profile_has_its_own_label() {
-        for profile in ALL {
-            assert!(!profile.label().is_empty());
-            assert_ne!(profile.label(), profile.next().label());
+        let labels: Vec<&str> = ALL.into_iter().map(LuminanceProfile::label).collect();
+
+        for (index, label) in labels.iter().enumerate() {
+            assert!(!label.is_empty());
+            assert!(!labels[..index].contains(label), "{label}");
         }
     }
 }
