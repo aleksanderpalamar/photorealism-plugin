@@ -94,3 +94,45 @@ fn the_offset_saturates_at_the_exposure_limits() {
     assert_eq!(brightest.effective_exposure(), 4.0);
     assert_eq!(darkest.effective_exposure(), -4.0);
 }
+
+const SHADER: &str = include_str!("../../shaders/photorealism.hlsl");
+const EXPOSURE_EXPRESSION: &str = "color = max(color * exp2(Exposure), 0.0);";
+const CONTRAST_EXPRESSION: &str = "color = pivot * pow(max(color, 0.000001) / pivot, Contrast);";
+const PIVOT: f32 = 0.18;
+const PAPER_WHITE: f32 = 203.0;
+const TOLERANCE: f32 = 0.05;
+
+fn graded(relative: f32, settings: Settings) -> f32 {
+    let exposed = relative * settings.effective_exposure().exp2();
+    PIVOT * (exposed.max(0.000001) / PIVOT).powf(settings.contrast) * PAPER_WHITE
+}
+
+#[test]
+fn the_shader_still_grades_the_way_this_mirror_does() {
+    assert!(SHADER.contains(EXPOSURE_EXPRESSION));
+    assert!(SHADER.contains(CONTRAST_EXPRESSION));
+}
+
+#[test]
+fn the_documented_luminance_matches_the_shipped_defaults() {
+    let white = [135.9, 191.5, 269.9];
+    let grey = [24.9, 35.1, 49.4];
+
+    for (index, profile) in LuminanceProfile::ALL.into_iter().enumerate() {
+        let settings = Settings {
+            luminance_profile: profile,
+            ..Settings::default()
+        };
+
+        assert!(
+            (graded(1.0, settings) - white[index]).abs() < TOLERANCE,
+            "{profile:?}: {}",
+            graded(1.0, settings)
+        );
+        assert!(
+            (graded(PIVOT, settings) - grey[index]).abs() < TOLERANCE,
+            "{profile:?}: {}",
+            graded(PIVOT, settings)
+        );
+    }
+}

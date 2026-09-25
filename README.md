@@ -95,17 +95,27 @@ Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos val
 
 `luminance_profile` aceita `low`, `neutral` ou `high`, e o padrão é `neutral`. O perfil **soma** um deslocamento de exposição sobre o valor de `exposure`, em vez de substituí-lo: a calibração fina que você já fez continua valendo ao trocar de perfil.
 
-| Perfil | Painel | Deslocamento | Cinza médio | Branco difuso equivalente |
-| --- | --- | --- | --- | --- |
-| `low` | `baixa` | −0,50 EV | 25,8 nits | 143 nits |
-| `neutral` | `neutra` | 0,00 EV | 36,5 nits | 203 nits |
-| `high` | `alta` | +0,50 EV | 51,6 nits | 287 nits |
-
-Os valores não são preferência: o perfil neutro é o branco difuso de 203 nits da ITU-R BT.2408, que é também o padrão de `hdr_paper_white_nits`, e o pivô de contraste do shader em 0,18 põe o cinza médio em 36,5 nits — o cinza de 18% da fotografia. O degrau de meio stop é o bracket fotográfico clássico e mantém o branco difuso dentro da faixa que produções HDR reais usam.
+| Perfil | Painel | Deslocamento |
+| --- | --- | --- |
+| `low` | `baixa` | −0,50 EV |
+| `neutral` | `neutra` | 0,00 EV |
+| `high` | `alta` | +0,50 EV |
 
 Como `neutral` soma zero, uma configuração sem essa chave se comporta exatamente como antes de o perfil existir.
 
-A soma é recortada na mesma faixa de `exposure`, de −4 a +4 EV. Com `exposure` além de ±3,5 o perfil perde efeito, parcial ou totalmente — é o limite de segurança, não um defeito. O log traz `profile=` e `exposure_eff=` para mostrar o valor que de fato chegou ao shader.
+**De onde vem o meio stop.** Medido isoladamente, com `exposure=0` e `contrast=1`, o perfil neutro é o branco difuso de 203 nits da ITU-R BT.2408 — que é também o padrão de `hdr_paper_white_nits` — e o pivô de 0,18 do shader põe o cinza médio em 36,5 nits, o cinza de 18% da fotografia. Meio stop é o bracket fotográfico clássico e mantém esse branco equivalente entre 143 e 287 nits, dentro da faixa que produções HDR reais usam. Esses números são a **âncora do degrau**, não a saída do plugin.
+
+**O que a configuração padrão produz.** Com `exposure=-0.06` e `contrast=0.99`, o passe entrega:
+
+| Perfil | Entrada de 203 nits sai em | Entrada de 36,5 nits sai em |
+| --- | --- | --- |
+| `baixa` | 135,9 nits | 24,9 nits |
+| `neutra` | 191,5 nits | 35,1 nits |
+| `alta` | 269,9 nits | 49,4 nits |
+
+A diferença para a âncora vem do `exposure=-0.06`, que o perfil soma, e do `contrast=0.99`, que o shader aplica depois. **Qualquer mudança em `exposure` ou `contrast` move os três valores**, então use a tabela como ponto de partida, não como medida fixa. O log traz `exposure_eff=` com a exposição que de fato chegou ao shader. Os números acima são travados pelo teste `the_documented_luminance_matches_the_shipped_defaults`.
+
+A soma é recortada na mesma faixa de `exposure`, de −4 a +4 EV. Com `exposure` além de ±3,5 o perfil perde efeito, parcial ou totalmente — é o limite de segurança, não um defeito.
 
 `hdr_peak_nits` aceita `auto`, que é o padrão, ou um número entre 400 e 10000. Em `auto` o plugin consulta `IDXGIOutput6::GetDesc1` e usa o `MaxLuminance` informado pelo monitor, limitado à mesma faixa. Como nem todo caminho DXVK/Wayland preenche esse campo, o log registra o que foi lido: se o valor vier ausente ou abaixo de 250 nits, ele é descartado e o plugin volta para 1000 nits. Compare o número do log com a especificação do seu monitor e, se não bater, fixe o valor correto no lugar de `auto`. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
 
