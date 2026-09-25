@@ -141,3 +141,59 @@ fn saving_fires_only_once_per_press() {
 
     assert_eq!(action, Action::Idle);
 }
+
+fn profile_row() -> crate::menu::row::Row {
+    layout()
+        .rows
+        .iter()
+        .find(|row| row.field == Field::LuminanceProfile)
+        .copied()
+        .expect("linha do perfil")
+}
+
+#[test]
+fn pressing_the_profile_area_advances_it() {
+    let row = profile_row();
+    let point = Point {
+        x: row.track.x + 4.0,
+        y: row.bounds.y + row.bounds.height / 2.0,
+    };
+    let mut interaction = Interaction::default();
+
+    let action = interaction.update(&layout(), pointer_at(point, true), &Settings::default());
+
+    assert_eq!(action, Action::Flip(Field::LuminanceProfile));
+}
+
+#[test]
+fn pressing_the_profile_label_does_nothing() {
+    let row = profile_row();
+    let point = Point {
+        x: row.label.x + 4.0,
+        y: row.bounds.y + row.bounds.height / 2.0,
+    };
+    let mut interaction = Interaction::default();
+
+    let action = interaction.update(&layout(), pointer_at(point, true), &Settings::default());
+
+    assert_eq!(action, Action::Idle);
+}
+
+#[test]
+fn holding_the_button_over_the_profile_does_not_drag() {
+    let row = profile_row();
+    let point = Point {
+        x: row.track.x + 4.0,
+        y: row.bounds.y + row.bounds.height / 2.0,
+    };
+    let mut interaction = Interaction::default();
+    interaction.update(&layout(), pointer_at(point, true), &Settings::default());
+
+    let away = Point {
+        x: row.track.right() - 2.0,
+        y: point.y,
+    };
+    let action = interaction.update(&layout(), pointer_at(away, true), &Settings::default());
+
+    assert_eq!(action, Action::Idle);
+}

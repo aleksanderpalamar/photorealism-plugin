@@ -1,11 +1,12 @@
 use super::action::Action;
 use super::field::Field;
+use super::geometry::Rect;
 use super::layout::Layout;
 use super::pointer::Pointer;
 use super::row::Row;
 
-pub fn flip(row: Row, pointer: Pointer) -> Action {
-    if !row.switch_box().contains(pointer.position()) {
+pub fn flip(row: Row, area: Rect, pointer: Pointer) -> Action {
+    if !area.contains(pointer.position()) {
         return Action::Idle;
     }
     Action::Flip(row.field)

@@ -2,12 +2,13 @@ use crate::settings::{PeakNits, Settings};
 
 pub fn serialize(settings: &Settings) -> String {
     format!(
-        "enabled={}\nforce_hdr={}\nexposure={}\ncontrast={}\nsaturation={}\n\
-         temperature={}\ntint={}\nhighlight_rolloff={}\n\
-         hdr_paper_white_nits={}\nhdr_peak_nits={}\n",
+        "enabled={}\nforce_hdr={}\nexposure={}\nluminance_profile={}\n\
+         contrast={}\nsaturation={}\ntemperature={}\ntint={}\n\
+         highlight_rolloff={}\nhdr_paper_white_nits={}\nhdr_peak_nits={}\n",
         settings.enabled,
         settings.force_hdr,
         settings.exposure,
+        settings.luminance_profile,
         settings.contrast,
         settings.saturation,
         settings.temperature,
@@ -28,7 +29,7 @@ fn peak(nits: PeakNits) -> String {
 #[cfg(test)]
 mod tests {
     use super::serialize;
-    use crate::settings::{PeakNits, Settings};
+    use crate::settings::{LuminanceProfile, PeakNits, Settings};
 
     fn round_trip(settings: Settings) -> Settings {
         Settings::parse(&serialize(&settings))
@@ -52,6 +53,7 @@ mod tests {
             highlight_rolloff: 0.35,
             hdr_paper_white_nits: 220.0,
             hdr_peak_nits: PeakNits::Fixed(1499.0),
+            luminance_profile: LuminanceProfile::High,
         };
 
         assert_eq!(round_trip(settings), settings);
@@ -66,6 +68,22 @@ mod tests {
 
         assert!(serialize(&settings).contains("hdr_peak_nits=1499.5\n"));
         assert_eq!(round_trip(settings), settings);
+    }
+
+    #[test]
+    fn every_profile_survives_a_round_trip() {
+        for profile in [
+            LuminanceProfile::Low,
+            LuminanceProfile::Neutral,
+            LuminanceProfile::High,
+        ] {
+            let settings = Settings {
+                luminance_profile: profile,
+                ..Settings::default()
+            };
+
+            assert_eq!(round_trip(settings), settings);
+        }
     }
 
     #[test]
@@ -89,6 +107,7 @@ mod tests {
             "highlight_rolloff",
             "hdr_paper_white_nits",
             "hdr_peak_nits",
+            "luminance_profile",
         ];
 
         for key in keys {

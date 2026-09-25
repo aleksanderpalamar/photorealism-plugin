@@ -24,7 +24,7 @@ impl ShaderSettings {
     pub fn new(value: Settings, frame: &FrameResources, reported_peak: Option<f32>) -> Self {
         let conversion = if frame.manual_srgb { 1.0 } else { 0.0 };
         Self {
-            exposure: value.exposure,
+            exposure: value.effective_exposure(),
             contrast: value.contrast,
             saturation: value.saturation,
             temperature: value.temperature,

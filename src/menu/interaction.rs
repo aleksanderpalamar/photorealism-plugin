@@ -54,7 +54,8 @@ impl Interaction {
             return Action::Idle;
         }
         match row.field.control() {
-            Control::Switch => flip(row, pointer),
+            Control::Switch => flip(row, row.switch_box(), pointer),
+            Control::Cycle(_) => flip(row, row.slider_area(), pointer),
             Control::Slider(_) => self.start_drag(row, pointer),
         }
     }
