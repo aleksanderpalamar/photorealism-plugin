@@ -7,6 +7,7 @@ pub enum Action {
     Idle,
     Slide(Field, f32),
     Flip(Field),
+    Select(Field, usize),
     Reset(Field),
     Save,
     Discard,
@@ -16,6 +17,7 @@ pub fn apply(action: Action, settings: &mut Settings) {
     match action {
         Action::Slide(field, fraction) => field.set_fraction(settings, fraction),
         Action::Flip(field) => field.flip(settings),
+        Action::Select(field, index) => field.set_choice(settings, index),
         Action::Reset(field) => field.reset(settings),
         Action::Idle | Action::Save | Action::Discard => {}
     }

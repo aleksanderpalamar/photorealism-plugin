@@ -1,6 +1,8 @@
+mod luminance_profile;
 mod peak_nits;
 pub mod range;
 
+pub use luminance_profile::LuminanceProfile;
 pub use peak_nits::PeakNits;
 pub use range::Range;
 
@@ -16,6 +18,7 @@ pub struct Settings {
     pub highlight_rolloff: f32,
     pub hdr_paper_white_nits: f32,
     pub hdr_peak_nits: PeakNits,
+    pub luminance_profile: LuminanceProfile,
 }
 
 impl Default for Settings {
@@ -31,11 +34,16 @@ impl Default for Settings {
             highlight_rolloff: 0.18,
             hdr_paper_white_nits: 203.0,
             hdr_peak_nits: PeakNits::Auto,
+            luminance_profile: LuminanceProfile::Neutral,
         }
     }
 }
 
 impl Settings {
+    pub fn effective_exposure(self) -> f32 {
+        range::EXPOSURE.clamp(self.exposure + self.luminance_profile.exposure_offset())
+    }
+
     pub fn parse(contents: &str) -> Self {
         contents.lines().fold(Self::default(), Self::apply_line)
     }
@@ -68,6 +76,9 @@ impl Settings {
                     parse_f32(value, range::PAPER_WHITE_NITS, self.hdr_paper_white_nits)
             }
             "hdr_peak_nits" => self.hdr_peak_nits = PeakNits::parse(value, self.hdr_peak_nits),
+            "luminance_profile" => {
+                self.luminance_profile = LuminanceProfile::parse(value, self.luminance_profile)
+            }
             _ => {}
         }
     }
@@ -95,54 +106,5 @@ fn parse_f32(value: &str, range: Range, fallback: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{PeakNits, Settings};
-
-    #[test]
-    fn parses_supported_values() {
-        let settings = Settings::parse(
-            "enabled=false\nforce_hdr=false\nexposure=1.25\ncontrast=1.1\nsaturation=0.8\n\
-             temperature=7200\ntint=-0.2\nhighlight_rolloff=0.4\n\
-             hdr_paper_white_nits=250\nhdr_peak_nits=1200",
-        );
-
-        assert!(!settings.enabled);
-        assert!(!settings.force_hdr);
-        assert_eq!(settings.exposure, 1.25);
-        assert_eq!(settings.contrast, 1.1);
-        assert_eq!(settings.saturation, 0.8);
-        assert_eq!(settings.temperature, 7200.0);
-        assert_eq!(settings.tint, -0.2);
-        assert_eq!(settings.highlight_rolloff, 0.4);
-        assert_eq!(settings.hdr_paper_white_nits, 250.0);
-        assert_eq!(settings.hdr_peak_nits, PeakNits::Fixed(1200.0));
-    }
-
-    #[test]
-    fn clamps_values_to_safe_ranges() {
-        let settings = Settings::parse(
-            "exposure=8\ncontrast=-1\ntemperature=500\n\
-             hdr_paper_white_nits=20\nhdr_peak_nits=20000",
-        );
-
-        assert_eq!(settings.exposure, 4.0);
-        assert_eq!(settings.contrast, 0.25);
-        assert_eq!(settings.temperature, 2000.0);
-        assert_eq!(settings.hdr_paper_white_nits, 80.0);
-        assert_eq!(settings.hdr_peak_nits, PeakNits::Fixed(10_000.0));
-    }
-
-    #[test]
-    fn reads_the_automatic_peak_keyword() {
-        let settings = Settings::parse("hdr_peak_nits=1200\nhdr_peak_nits=auto");
-
-        assert_eq!(settings.hdr_peak_nits, PeakNits::Auto);
-    }
-
-    #[test]
-    fn ignores_invalid_and_unknown_values() {
-        let settings = Settings::parse("enabled=yes\ncontrast=invalid\nfuture=10");
-
-        assert_eq!(settings, Settings::default());
-    }
-}
+#[path = "settings_tests.rs"]
+mod tests;

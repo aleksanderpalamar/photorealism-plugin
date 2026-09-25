@@ -1,5 +1,7 @@
 use super::draft::Changes;
+use super::draw_choice::push_open;
 use super::draw_row::push_row;
+use super::field::Field;
 use super::geometry::{Point, Rect};
 use super::layout::Layout;
 use super::palette::{self, Color};
@@ -15,6 +17,7 @@ pub fn build(
     resolved_peak: f32,
     title: &str,
     changes: Changes,
+    open: Option<Field>,
     pointer: Option<Point>,
 ) -> Vec<Primitive> {
     let mut primitives = vec![
@@ -39,6 +42,9 @@ pub fn build(
         push_row(&mut primitives, row, settings, resolved_peak, layout.scale);
     }
     push_footer(&mut primitives, layout, changes);
+    if let Some(field) = open {
+        push_open(&mut primitives, layout, field, pointer);
+    }
     if let Some(position) = pointer {
         push_pointer(&mut primitives, position, layout.scale);
     }

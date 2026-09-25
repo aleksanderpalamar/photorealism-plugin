@@ -1,9 +1,10 @@
-use crate::settings::{Range, range};
+use crate::settings::{LuminanceProfile, Range, range};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Field {
     Enabled,
     Exposure,
+    LuminanceProfile,
     Contrast,
     Saturation,
     Temperature,
@@ -18,12 +19,14 @@ pub enum Field {
 pub enum Control {
     Slider(Range),
     Switch,
+    Choice(usize),
 }
 
 impl Field {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::Enabled,
         Self::Exposure,
+        Self::LuminanceProfile,
         Self::Contrast,
         Self::Saturation,
         Self::Temperature,
@@ -38,6 +41,7 @@ impl Field {
         match self {
             Self::Enabled => "Ativado",
             Self::Exposure => "Exposicao",
+            Self::LuminanceProfile => "Perfil de luminancia",
             Self::Contrast => "Contraste",
             Self::Saturation => "Saturacao",
             Self::Temperature => "Temperatura",
@@ -52,6 +56,7 @@ impl Field {
     pub fn control(self) -> Control {
         match self {
             Self::Enabled | Self::AutomaticPeak => Control::Switch,
+            Self::LuminanceProfile => Control::Choice(LuminanceProfile::COUNT),
             Self::Exposure => Control::Slider(range::EXPOSURE),
             Self::Contrast => Control::Slider(range::CONTRAST),
             Self::Saturation => Control::Slider(range::SATURATION),
@@ -101,6 +106,25 @@ mod tests {
             .collect();
 
         assert_eq!(switches, vec![Field::Enabled, Field::AutomaticPeak]);
+    }
+
+    #[test]
+    fn only_the_profile_offers_a_list() {
+        let cycles: Vec<Field> = Field::ALL
+            .into_iter()
+            .filter(|field| matches!(field.control(), Control::Choice(_)))
+            .collect();
+
+        assert_eq!(cycles, vec![Field::LuminanceProfile]);
+    }
+
+    #[test]
+    fn a_list_declares_more_than_two_states() {
+        let Control::Choice(states) = Field::LuminanceProfile.control() else {
+            panic!("o perfil precisa oferecer uma lista");
+        };
+
+        assert!(states > 2);
     }
 
     #[test]

@@ -175,10 +175,13 @@ fn menu_state(visible: bool) -> &'static str {
 
 fn describe(settings: Settings) -> String {
     format!(
-        "enabled={} exposure={:.2} contrast={:.2} saturation={:.2} temperature={:.0} \
-         tint={:.2} highlight_rolloff={:.2} paper_white={:.0} peak={}",
+        "enabled={} exposure={:.2} profile={} exposure_eff={:.2} contrast={:.2} \
+         saturation={:.2} temperature={:.0} tint={:.2} highlight_rolloff={:.2} \
+         paper_white={:.0} peak={}",
         settings.enabled,
         settings.exposure,
+        settings.luminance_profile,
+        settings.effective_exposure(),
         settings.contrast,
         settings.saturation,
         settings.temperature,

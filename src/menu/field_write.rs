@@ -1,5 +1,5 @@
 use super::field::{Control, Field};
-use crate::settings::{PeakNits, Settings};
+use crate::settings::{LuminanceProfile, PeakNits, Settings};
 
 const DEFAULT_FIXED_PEAK: f32 = 1000.0;
 const UNIT_DECIMALS: f32 = 1000.0;
@@ -20,11 +20,22 @@ impl Field {
         }
     }
 
+    pub fn set_choice(self, settings: &mut Settings, index: usize) {
+        let Self::LuminanceProfile = self else {
+            return;
+        };
+        let Some(profile) = LuminanceProfile::ALL.get(index) else {
+            return;
+        };
+        settings.luminance_profile = *profile;
+    }
+
     pub fn reset(self, settings: &mut Settings) {
         let defaults = Settings::default();
         match self {
             Self::Enabled => settings.enabled = defaults.enabled,
             Self::AutomaticPeak | Self::PeakNits => settings.hdr_peak_nits = defaults.hdr_peak_nits,
+            Self::LuminanceProfile => settings.luminance_profile = defaults.luminance_profile,
             _ => self.assign(settings, self.value(&defaults, DEFAULT_FIXED_PEAK)),
         }
     }
@@ -39,7 +50,7 @@ impl Field {
             Self::HighlightRolloff => settings.highlight_rolloff = value,
             Self::PaperWhite => settings.hdr_paper_white_nits = value,
             Self::PeakNits => settings.hdr_peak_nits = PeakNits::Fixed(value),
-            Self::Enabled | Self::AutomaticPeak => {}
+            Self::Enabled | Self::AutomaticPeak | Self::LuminanceProfile => {}
         }
     }
 }
@@ -61,7 +72,7 @@ fn quantize(field: Field, value: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::Field;
-    use crate::settings::{PeakNits, Settings};
+    use crate::settings::{LuminanceProfile, PeakNits, Settings};
 
     const PEAK: f32 = 1000.0;
 
@@ -123,5 +134,50 @@ mod tests {
         Field::PeakNits.reset(&mut settings);
 
         assert_eq!(settings.hdr_peak_nits, PeakNits::Auto);
+    }
+
+    #[test]
+    fn selecting_an_index_sets_that_profile() {
+        let mut settings = Settings::default();
+
+        for (index, profile) in LuminanceProfile::ALL.into_iter().enumerate() {
+            Field::LuminanceProfile.set_choice(&mut settings, index);
+
+            assert_eq!(settings.luminance_profile, profile);
+        }
+    }
+
+    #[test]
+    fn an_index_outside_the_list_is_ignored() {
+        let mut settings = Settings::default();
+
+        Field::LuminanceProfile.set_choice(&mut settings, LuminanceProfile::COUNT);
+
+        assert_eq!(settings.luminance_profile, LuminanceProfile::Neutral);
+    }
+
+    #[test]
+    fn selecting_a_profile_leaves_the_exposure_alone() {
+        let mut settings = Settings {
+            exposure: 0.25,
+            ..Settings::default()
+        };
+
+        Field::LuminanceProfile.set_choice(&mut settings, 2);
+
+        assert_eq!(settings.exposure, 0.25);
+        assert_eq!(settings.effective_exposure(), 0.75);
+    }
+
+    #[test]
+    fn resetting_the_profile_restores_the_neutral_one() {
+        let mut settings = Settings {
+            luminance_profile: LuminanceProfile::Low,
+            ..Settings::default()
+        };
+
+        Field::LuminanceProfile.reset(&mut settings);
+
+        assert_eq!(settings.luminance_profile, LuminanceProfile::Neutral);
     }
 }

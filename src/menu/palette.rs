@@ -30,6 +30,8 @@ pub const TRACK: Color = Color::new(0.10, 0.10, 0.14, 1.0);
 pub const FILL: Color = Color::new(0.33, 0.26, 0.72, 1.0);
 pub const HANDLE: Color = Color::new(0.55, 0.50, 0.92, 1.0);
 pub const LOCKED: Color = Color::new(0.30, 0.30, 0.36, 1.0);
+pub const POPUP: Color = Color::new(0.035, 0.035, 0.050, 1.0);
+pub const HIGHLIGHT: Color = Color::new(0.16, 0.16, 0.21, 1.0);
 pub const POINTER: Color = Color::new(0.95, 0.95, 1.00, 1.0);
 pub const POINTER_OUTLINE: Color = Color::new(0.02, 0.02, 0.03, 0.85);
 

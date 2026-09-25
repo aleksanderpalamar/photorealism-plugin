@@ -7,6 +7,7 @@ O projeto usa a mesma estratégia básica da implementação de referência: `dx
 ## Escopo atual
 
 - exposição;
+- perfil de luminância global, em três níveis;
 - contraste;
 - saturação;
 - temperatura de cor;
@@ -90,6 +91,32 @@ Se o arquivo estiver ausente ou ilegível no momento da leitura, os últimos val
 
 `force_hdr=true` define `DXVK_HDR=1` antes de o DXGI real ser carregado, permitindo que o ETS2 detecte os modos HDR no Proton. Essa opção não substitui `PROTON_ENABLE_HDR=1`, que precisa existir antes de o Proton iniciar. Para HDR, ajuste `hdr_paper_white_nits` para o nível de branco confortável da tela; o valor inicial é 203 nits.
 
+### Perfil de luminância
+
+`luminance_profile` aceita `low`, `neutral` ou `high`, e o padrão é `neutral`. O perfil **soma** um deslocamento de exposição sobre o valor de `exposure`, em vez de substituí-lo: a calibração fina que você já fez continua valendo ao trocar de perfil.
+
+| Perfil | Painel | Deslocamento |
+| --- | --- | --- |
+| `low` | `baixa` | −0,50 EV |
+| `neutral` | `neutra` | 0,00 EV |
+| `high` | `alta` | +0,50 EV |
+
+Como `neutral` soma zero, uma configuração sem essa chave se comporta exatamente como antes de o perfil existir.
+
+**De onde vem o meio stop.** Medido isoladamente, com `exposure=0` e `contrast=1`, o perfil neutro é o branco difuso de 203 nits da ITU-R BT.2408 — que é também o padrão de `hdr_paper_white_nits` — e o pivô de 0,18 do shader põe o cinza médio em 36,5 nits, o cinza de 18% da fotografia. Meio stop é o bracket fotográfico clássico e mantém esse branco equivalente entre 143 e 287 nits, dentro da faixa que produções HDR reais usam. Esses números são a **âncora do degrau**, não a saída do plugin.
+
+**O que a configuração padrão produz.** Com `exposure=-0.06` e `contrast=0.99`, o passe entrega:
+
+| Perfil | Entrada de 203 nits sai em | Entrada de 36,5 nits sai em |
+| --- | --- | --- |
+| `baixa` | 135,9 nits | 24,9 nits |
+| `neutra` | 191,5 nits | 35,1 nits |
+| `alta` | 269,9 nits | 49,4 nits |
+
+A diferença para a âncora vem do `exposure=-0.06`, que o perfil soma, e do `contrast=0.99`, que o shader aplica depois. **Qualquer mudança em `exposure` ou `contrast` move os três valores**, então use a tabela como ponto de partida, não como medida fixa. O log traz `exposure_eff=` com a exposição que de fato chegou ao shader. Os números acima são travados pelo teste `the_documented_luminance_matches_the_shipped_defaults`.
+
+A soma é recortada na mesma faixa de `exposure`, de −4 a +4 EV. Com `exposure` além de ±3,5 o perfil perde efeito, parcial ou totalmente — é o limite de segurança, não um defeito.
+
 `hdr_peak_nits` aceita `auto`, que é o padrão, ou um número entre 400 e 10000. Em `auto` o plugin consulta `IDXGIOutput6::GetDesc1` e usa o `MaxLuminance` informado pelo monitor, limitado à mesma faixa. Como nem todo caminho DXVK/Wayland preenche esse campo, o log registra o que foi lido: se o valor vier ausente ou abaixo de 250 nits, ele é descartado e o plugin volta para 1000 nits. Compare o número do log com a especificação do seu monitor e, se não bater, fixe o valor correto no lugar de `auto`. O log informa `HDR10-PQ`, `scRGB` ou `SDR` conforme o backbuffer criado pelo jogo.
 
 Saturação e balanço de branco dependem do peso de luminância de cada canal. Em HDR10-PQ o conteúdo está em Rec.2020 e os pesos usados são os dessa norma; em SDR e scRGB valem os de Rec.709. A gradação continua acontecendo nas primárias nativas de cada modo, sem conversão de gamut, para não descartar as cores fora do Rec.709 que o HDR10 carrega. Por isso `temperature` e `tint` têm força um pouco diferente entre os modos e merecem calibração separada.
@@ -100,7 +127,7 @@ O HDR deve estar habilitado no sistema e detectado pelo ETS2. Ao executar o jogo
 
 `CTRL+P` abre e fecha um painel no canto superior esquerdo com os parâmetros e seus valores atuais. Cada mudança de estado é registrada no log.
 
-Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
+Com o painel aberto, arraste os controles deslizantes com o mouse e clique nas caixas para alternar `Ativado` e `Pico automatico`. A linha `Perfil de luminancia` é uma lista: clicar na caixa abre as opções sobre as linhas de baixo, clicar em uma delas escolhe e fecha, e clicar fora fecha sem mudar nada. Os valores entram em vigor no quadro seguinte. A linha do pico fica esmaecida enquanto `hdr_peak_nits=auto`, porque nesse modo o valor vem do monitor e não da configuração; ela mostra `auto` seguido do valor que está em vigor, como `auto 1499`.
 
 Enquanto o painel está aberto, mouse e teclado deixam de chegar ao jogo: o plugin intercepta `GetDeviceState` e `GetDeviceData` do DirectInput, lê os deslocamentos do mouse para mover o próprio ponteiro e devolve o estado zerado. Sem isso, arrastar um controle também giraria a câmera. Volantes, pedais e outros dispositivos não são bloqueados. O log confirma a instalação e registra, no primeiro bloqueio, se o jogo lê a entrada por estado ou por buffer.
 

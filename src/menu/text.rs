@@ -41,3 +41,15 @@ pub fn push_centered(into: &mut Vec<Primitive>, area: Rect, scale: f32, text: &s
         color,
     );
 }
+
+pub fn push_option(into: &mut Vec<Primitive>, area: Rect, text: &str, scale: f32) {
+    let row = area.centered_row(CELL_HEIGHT as f32 * scale);
+    push_text(
+        into,
+        row,
+        area.x + CELL_WIDTH as f32 * scale / 2.0,
+        scale,
+        text,
+        super::palette::VALUE,
+    );
+}
